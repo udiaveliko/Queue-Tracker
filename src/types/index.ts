@@ -123,6 +123,20 @@ export interface WaitTimePrediction {
 }
 
 export type RouteRecommendation = 'GO_NOW' | 'WAIT' | 'STABLE'
+export type RoutePlannerMode = 'shortest-wait' | 'shortest-walk' | 'balanced'
+
+export interface AttractionLocation {
+  parkId: string
+  attractionId: string
+  attractionName?: string
+  x: number
+  y: number
+  land?: string
+}
+
+export interface ResolvedAttractionLocation extends AttractionLocation {
+  estimatedLocation: boolean
+}
 
 export interface RoutePlannerAttraction {
   id: string
@@ -132,16 +146,38 @@ export interface RoutePlannerAttraction {
   trend: WaitTimePredictionTrend
   recommendation: RouteRecommendation
   predictedWait30Minutes: number | null
+  location: ResolvedAttractionLocation
+}
+
+export type RouteDecisionReason =
+  | 'fila baixa'
+  | 'tendência subindo'
+  | 'melhor ir agora'
+  | 'perto da atração anterior'
+  | 'evita deslocamento longo'
+  | 'está na mesma área'
+
+export interface RouteDecisionExplanation {
+  primaryReason: RouteDecisionReason
+  score: number
+  waitScore: number
+  distanceScore: number
+  predictionScore: number
 }
 
 export interface PlannedRouteStop extends RoutePlannerAttraction {
   order: number
   estimatedWait: number
+  distanceFromPrevious: number
+  explanation: RouteDecisionExplanation
 }
 
 export interface PlannedRoute {
   stops: PlannedRouteStop[]
   totalEstimatedWait: number
+  totalEstimatedDistance: number
+  landsVisited: number
+  longestWalkingDistance: number
 }
 
 export interface PredictionEvaluationResult {

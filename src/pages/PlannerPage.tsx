@@ -16,6 +16,7 @@ import { getParks, getParkWaitTimes } from '../services/waitTimes'
 import type {
   ParkWaitTimes,
   RoutePlannerAttraction,
+  RoutePlannerMode,
   RouteRecommendation,
 } from '../types'
 import { ThemeToggle } from '../components/ThemeToggle'
@@ -30,12 +31,46 @@ const recommendationLabel: Record<RouteRecommendation, string> = {
   STABLE: 'Estável',
 }
 
+const routeModes: Array<{
+  id: RoutePlannerMode
+  label: string
+  description: string
+}> = [
+  {
+    id: 'shortest-wait',
+    label: 'Menor fila',
+    description: 'Prioriza tempo e previsão',
+  },
+  {
+    id: 'shortest-walk',
+    label: 'Menor caminhada',
+    description: 'Mantém atrações próximas',
+  },
+  {
+    id: 'balanced',
+    label: 'Balanceado',
+    description: 'Equilibra fila e distância',
+  },
+]
+
+const formatDistance = (distance: number) =>
+  distance >= 1000
+    ? `${(distance / 1000).toFixed(1).replace('.', ',')} km`
+    : `${distance} m`
+
+const routeSummaryLabel: Record<RoutePlannerMode, string> = {
+  'shortest-wait': 'Rota otimizada para menor fila',
+  'shortest-walk': 'Rota otimizada para menor caminhada',
+  balanced: 'Rota balanceada entre fila e distância',
+}
+
 export function PlannerPage({ onBack }: PlannerPageProps) {
   const parks = getParks()
   const [parkId, setParkId] = useState(parks[0]?.id ?? '')
   const [data, setData] = useState<ParkWaitTimes | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState('')
+  const [routeMode, setRouteMode] = useState<RoutePlannerMode>('balanced')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -86,8 +121,8 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
   }, [data, parkId, selectedIds])
 
   const route = useMemo(
-    () => planAttractionRoute(selectedAttractions),
-    [selectedAttractions],
+    () => planAttractionRoute(selectedAttractions, routeMode),
+    [routeMode, selectedAttractions],
   )
 
   const toggleAttraction = (attractionId: string) => {
@@ -118,7 +153,7 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
       <section className="planner-hero">
         <span className="analytics-eyebrow"><SparkIcon /> Rota inteligente</span>
         <h1>Seu dia,<br /><span>bem planejado.</span></h1>
-        <p>Escolha suas atrações e receba a melhor ordem com base nas filas e tendências atuais.</p>
+        <p>Escolha suas atrações e equilibre filas, tendências e deslocamentos dentro do parque.</p>
       </section>
 
       <section className="planner-content">
@@ -137,6 +172,32 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
         </label>
 
         {data?.warning && <p className="planner-warning">{data.warning}</p>}
+
+        <div className="route-mode-section">
+          <div className="route-mode-heading">
+            <div>
+              <span className="section-kicker">Modo de roteiro</span>
+              <h2>Como você quer aproveitar o parque?</h2>
+            </div>
+          </div>
+          <div className="route-mode-control" role="group" aria-label="Modo de roteiro">
+            {routeModes.map((mode) => (
+              <button
+                type="button"
+                key={mode.id}
+                className={routeMode === mode.id ? 'is-active' : ''}
+                aria-pressed={routeMode === mode.id}
+                onClick={() => setRouteMode(mode.id)}
+              >
+                <strong>{mode.label}</strong>
+                <span>{mode.description}</span>
+              </button>
+            ))}
+          </div>
+          <p className="distance-disclaimer">
+            Distâncias estimadas com base em mapa simplificado.
+          </p>
+        </div>
 
         <div className="planner-layout">
           <div className="planner-attractions-panel">
@@ -206,44 +267,100 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
           </div>
 
           <aside className="planned-route-panel">
+            <div className="route-optimization-summary">
+              <SparkIcon />
+              <div>
+                <span>Estratégia ativa</span>
+                <strong>{routeSummaryLabel[routeMode]}</strong>
+              </div>
+            </div>
             <div className="planned-route-header">
               <div>
                 <span className="section-kicker">Sugestão</span>
                 <h2>Melhor ordem</h2>
               </div>
               <div className="route-total">
-                <ClockIcon />
-                <strong>{route.totalEstimatedWait}</strong>
-                <span>min de fila</span>
+                <div>
+                  <ClockIcon />
+                  <strong>{route.totalEstimatedWait}</strong>
+                  <span>min de fila</span>
+                </div>
+                <div>
+                  <span className="route-distance-symbol" aria-hidden="true">↝</span>
+                  <strong>{formatDistance(route.totalEstimatedDistance)}</strong>
+                  <span>caminhada</span>
+                </div>
               </div>
             </div>
 
             {route.stops.length ? (
-              <ol className="route-stops">
-                {route.stops.map((stop) => (
-                  <li key={stop.id} className={`route-stop recommendation-${stop.recommendation.toLowerCase()}`}>
-                    <span className="route-order">{stop.order}</span>
-                    <div className="route-stop-copy">
-                      <strong>{stop.name}</strong>
-                      <span>{stop.land}</span>
-                      <div className="route-stop-meta">
+              <>
+                <div className="route-summary-grid">
+                  <div>
+                    <strong>{route.totalEstimatedWait} min</strong>
+                    <span>Filas estimadas</span>
+                  </div>
+                  <div>
+                    <strong>{formatDistance(route.totalEstimatedDistance)}</strong>
+                    <span>Distância total</span>
+                  </div>
+                  <div>
+                    <strong>{route.landsVisited}</strong>
+                    <span>Áreas visitadas</span>
+                  </div>
+                  <div>
+                    <strong>{formatDistance(route.longestWalkingDistance)}</strong>
+                    <span>Maior trecho</span>
+                  </div>
+                </div>
+                <ol className="route-stops">
+                  {route.stops.map((stop) => (
+                    <li key={stop.id} className={`route-stop recommendation-${stop.recommendation.toLowerCase()}`}>
+                      <span className="route-order">{stop.order}</span>
+                      <div className="route-stop-copy">
+                        <strong>{stop.name}</strong>
                         <span>
-                          {stop.trend === 'up'
-                            ? <TrendUpIcon />
-                            : stop.trend === 'down'
-                              ? <TrendDownIcon />
-                              : '→'}
-                          {recommendationLabel[stop.recommendation]}
+                          {stop.land}
+                          {stop.location.estimatedLocation && (
+                            <small className="estimated-location"> localização estimada</small>
+                          )}
                         </span>
+                        <div className="route-stop-meta">
+                          <span>
+                            {stop.trend === 'up'
+                              ? <TrendUpIcon />
+                              : stop.trend === 'down'
+                                ? <TrendDownIcon />
+                                : '→'}
+                            {recommendationLabel[stop.recommendation]}
+                          </span>
+                          {stop.distanceFromPrevious > 0 && (
+                            <span className="route-leg-distance">
+                              ↝ {formatDistance(stop.distanceFromPrevious)} desde a anterior
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="route-stop-wait">
-                      <strong>{stop.waitTime}</strong>
-                      <span>min agora</span>
-                    </div>
-                  </li>
-                ))}
-              </ol>
+                      <div className="route-stop-wait">
+                        <strong>{stop.waitTime}</strong>
+                        <span>min agora</span>
+                      </div>
+                      <div className="route-explanation">
+                        <div className="route-main-reason">
+                          <span>Por que aqui?</span>
+                          <strong>{stop.explanation.primaryReason}</strong>
+                        </div>
+                        <div className="route-score-list" aria-label={`Scores de ${stop.name}`}>
+                          <span><strong>{stop.explanation.score}</strong> Geral</span>
+                          <span><strong>{stop.explanation.waitScore}</strong> Fila</span>
+                          <span><strong>{stop.explanation.distanceScore}</strong> Distância</span>
+                          <span><strong>{stop.explanation.predictionScore}</strong> Previsão</span>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </>
             ) : (
               <div className="planner-empty route-empty">
                 <SparkIcon />

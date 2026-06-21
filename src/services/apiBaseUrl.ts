@@ -1,9 +1,9 @@
-const configuredApiUrl = import.meta.env.VITE_STORAGE_API_URL
+const configuredApiUrl = import.meta.env?.VITE_STORAGE_API_URL
 
 export const API_BASE_URL = (
   configuredApiUrl !== undefined
     ? configuredApiUrl.trim()
-    : import.meta.env.DEV
+    : import.meta.env?.DEV
       ? 'http://localhost:3001'
       : ''
 ).replace(/\/$/, '')
