@@ -254,7 +254,7 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
             ))}
           </div>
           <p className="distance-disclaimer">
-            Distâncias estimadas com base em mapa simplificado.
+            Mapa simplificado criado para orientação. Use o mapa oficial do parque para navegação precisa.
           </p>
         </div>
 

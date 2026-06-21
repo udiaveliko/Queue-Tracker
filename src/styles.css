@@ -2195,7 +2195,7 @@ body {
 
 .park-route-map-heading {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 13px;
@@ -2214,11 +2214,52 @@ body {
   text-transform: uppercase;
 }
 
+.route-map-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.route-map-actions > div {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--background) 64%, transparent);
+}
+
+.route-map-actions button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text-secondary);
+  font-size: 8px;
+  font-weight: 700;
+  background: var(--card);
+  cursor: pointer;
+  transition: color .2s ease, border-color .2s ease, background .2s ease;
+}
+
+.route-map-actions > div button {
+  min-height: 26px;
+  border: 0;
+  background: transparent;
+}
+
+.route-map-actions button.is-active {
+  border-color: color-mix(in srgb, var(--park-accent) 42%, var(--border));
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--park-accent) 13%, var(--card));
+}
+
 .park-route-map-canvas {
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--park-accent) 18%, var(--border));
   border-radius: 18px;
-  background: var(--background);
+  background:
+    radial-gradient(circle at 75% 18%, color-mix(in srgb, var(--park-accent) 9%, transparent), transparent 22rem),
+    var(--background);
 }
 
 .park-route-map svg {
@@ -2226,30 +2267,80 @@ body {
   max-height: 430px;
   display: block;
   aspect-ratio: 16 / 9;
+  transition: view-box .35s ease;
 }
 
 .route-map-background {
-  fill: color-mix(in srgb, var(--background) 94%, var(--park-accent));
+  fill: color-mix(in srgb, var(--background) 96%, var(--park-accent));
 }
 
-.route-map-grid-line {
-  fill: none;
+.route-map-park-outline {
+  fill: color-mix(in srgb, var(--surface) 92%, var(--park-accent));
+  stroke: color-mix(in srgb, var(--park-accent) 35%, var(--border));
+  stroke-width: 1;
+  filter: drop-shadow(0 2px 2px var(--shadow-color));
+}
+
+.route-map-land {
   stroke: color-mix(in srgb, var(--text-primary) 7%, transparent);
-  stroke-width: .25;
+  stroke-width: .35;
 }
 
-.route-map-terrain {
+.route-map-land-0 { fill: color-mix(in srgb, var(--park-accent) 10%, var(--card)); }
+.route-map-land-1 { fill: color-mix(in srgb, var(--success) 7%, var(--card)); }
+.route-map-land-2 { fill: color-mix(in srgb, var(--warning) 6%, var(--card)); }
+.route-map-land-3 { fill: color-mix(in srgb, #9b7cff 7%, var(--card)); }
+
+.route-map-area-label {
+  fill: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+  font-size: 2.1px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  paint-order: stroke;
+  stroke: var(--card);
+  stroke-width: .8px;
+}
+
+.route-map-feature {
+  stroke-width: .45;
+}
+
+.route-map-water {
+  fill: color-mix(in srgb, #4faeff 18%, var(--background));
+  stroke: color-mix(in srgb, #64d2ff 28%, transparent);
+}
+
+.route-map-green {
+  fill: color-mix(in srgb, var(--success) 12%, var(--background));
+  stroke: color-mix(in srgb, var(--success) 20%, transparent);
+}
+
+.route-map-main-path-shadow,
+.route-map-main-path {
   fill: none;
-  stroke: color-mix(in srgb, var(--park-accent) 16%, var(--border));
-  stroke-width: .75;
-  stroke-dasharray: 2 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.route-map-main-path-shadow {
+  stroke: color-mix(in srgb, var(--background) 70%, transparent);
+  stroke-width: 2.8;
+}
+
+.route-map-main-path {
+  stroke: color-mix(in srgb, var(--text-secondary) 38%, var(--card));
+  stroke-width: 1.35;
 }
 
 .route-map-path {
+  fill: none;
   stroke: var(--park-accent);
-  stroke-width: 1.3;
+  stroke-width: 1.55;
   stroke-linecap: round;
+  stroke-linejoin: round;
   opacity: .82;
+  filter: drop-shadow(0 0 1.5px color-mix(in srgb, var(--park-accent) 45%, transparent));
 }
 
 .route-map-arrow {
@@ -2312,6 +2403,92 @@ body {
   fill: var(--park-accent);
 }
 
+.route-map-estimated-label {
+  fill: color-mix(in srgb, var(--warning) 78%, var(--text-secondary));
+  font-size: 1.75px;
+  font-style: italic;
+  paint-order: stroke;
+  stroke: var(--background);
+  stroke-width: .65px;
+}
+
+.route-map-entrance {
+  color: var(--text-secondary);
+}
+
+.route-map-entrance path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: .8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.route-map-entrance text {
+  fill: currentColor;
+  font-size: 2.2px;
+  font-weight: 700;
+}
+
+.route-map-compass circle {
+  fill: color-mix(in srgb, var(--card) 88%, transparent);
+  stroke: var(--border);
+  stroke-width: .5;
+}
+
+.route-map-compass path {
+  fill: var(--park-accent);
+}
+
+.route-map-compass text {
+  fill: var(--text-primary);
+  font-size: 2.5px;
+  font-weight: 800;
+}
+
+.route-map-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 11px;
+  color: var(--text-secondary);
+  font-size: 7px;
+}
+
+.route-map-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.route-map-key i {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.route-map-key .key-route {
+  width: 14px;
+  height: 2px;
+  border-radius: 99px;
+  background: var(--park-accent);
+}
+
+.route-map-key .key-start {
+  border: 2px solid var(--park-accent);
+  background: transparent;
+}
+
+.route-map-key .key-stop {
+  background: var(--park-accent);
+}
+
+.route-map-key .key-estimated {
+  border: 1px dashed var(--warning);
+  background: transparent;
+}
+
 .park-route-map figcaption {
   margin-top: 11px;
   color: var(--text-secondary);
@@ -2326,6 +2503,16 @@ body {
   margin-right: 6px;
   border-radius: 50%;
   background: var(--park-accent);
+}
+
+.park-route-map.is-compact svg {
+  max-height: 300px;
+}
+
+.park-route-map.is-compact .route-map-area-label,
+.park-route-map.is-compact .route-map-land-label,
+.park-route-map.is-compact .route-map-estimated-label {
+  display: none;
 }
 
 .planner-layout {
@@ -2833,6 +3020,20 @@ body {
     margin-left: -4px;
     padding: 13px;
     border-radius: 21px;
+  }
+
+  .park-route-map-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .route-map-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .route-map-actions > button {
+    flex: 1;
   }
 
   .park-route-map svg {
