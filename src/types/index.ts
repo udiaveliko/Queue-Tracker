@@ -138,6 +138,12 @@ export interface ResolvedAttractionLocation extends AttractionLocation {
   estimatedLocation: boolean
 }
 
+export type RouteStartMode = 'entrance' | 'center' | 'land' | 'attraction'
+
+export interface RouteStartPoint extends ResolvedAttractionLocation {
+  label: string
+}
+
 export interface RoutePlannerAttraction {
   id: string
   name: string
@@ -178,6 +184,7 @@ export interface PlannedRoute {
   totalEstimatedDistance: number
   landsVisited: number
   longestWalkingDistance: number
+  distanceFromStart: number
 }
 
 export interface PredictionEvaluationResult {

@@ -4,6 +4,7 @@ import type {
   ResolvedAttractionLocation,
   RoutePlannerAttraction,
   RouteRecommendation,
+  RouteStartPoint,
 } from '../src/types/index.ts'
 import {
   explainRouteDecision,
@@ -47,6 +48,25 @@ test('primeira atração respeita recomendação GO_NOW em qualquer modo', () =>
 
   assert.equal(planAttractionRoute(attractions, 'shortest-wait').stops[0].id, 'go-now')
   assert.equal(planAttractionRoute(attractions, 'shortest-walk').stops[0].id, 'go-now')
+})
+
+test('ponto inicial altera a primeira parada no modo menor caminhada', () => {
+  const startPoint: RouteStartPoint = {
+    parkId: 'test-park',
+    attractionId: 'entrance',
+    x: 90,
+    y: 90,
+    estimatedLocation: true,
+    label: 'Entrada',
+  }
+  const route = planAttractionRoute([
+    routeAttraction('go-now-far', 20, 'GO_NOW', 0, 0),
+    routeAttraction('near', 30, 'STABLE', 88, 88),
+  ], 'shortest-walk', startPoint)
+
+  assert.equal(route.stops[0].id, 'near')
+  assert.equal(route.distanceFromStart, route.stops[0].distanceFromPrevious)
+  assert.ok(route.totalEstimatedDistance >= route.distanceFromStart)
 })
 
 test('modo menor fila prefere a próxima atração com espera baixa', () => {
@@ -105,5 +125,6 @@ test('rota vazia retorna totais zerados', () => {
     totalEstimatedDistance: 0,
     landsVisited: 0,
     longestWalkingDistance: 0,
+    distanceFromStart: 0,
   })
 })

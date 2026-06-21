@@ -18,8 +18,13 @@ import type {
   RoutePlannerAttraction,
   RoutePlannerMode,
   RouteRecommendation,
+  RouteStartMode,
+  RouteStartPoint,
 } from '../types'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { ParkRouteMap } from '../components/ParkRouteMap'
+import { parkEntrances } from '../data/parkEntrances'
+import { getParkLandOptions, PARK_CENTER } from '../data/parkLandCenters'
 
 interface PlannerPageProps {
   onBack: () => void
@@ -71,6 +76,8 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState('')
   const [routeMode, setRouteMode] = useState<RoutePlannerMode>('balanced')
+  const [startMode, setStartMode] = useState<RouteStartMode>('entrance')
+  const [startReference, setStartReference] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -79,6 +86,8 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
     setIsLoading(true)
     setError(null)
     setSelectedIds(new Set())
+    setStartMode('entrance')
+    setStartReference('')
 
     getParkWaitTimes(parkId)
       .then((response) => {
@@ -120,9 +129,59 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
       )
   }, [data, parkId, selectedIds])
 
+  const landOptions = useMemo(() => getParkLandOptions(parkId), [parkId])
+  const selectedPark = parks.find((park) => park.id === parkId)
+
+  const startPoint = useMemo<RouteStartPoint>(() => {
+    if (startMode === 'land') {
+      const selectedLand = landOptions.find((land) => land.name === startReference)
+        ?? landOptions[0]
+      return {
+        parkId,
+        attractionId: `start-land-${selectedLand?.name ?? 'center'}`,
+        x: selectedLand?.location.x ?? PARK_CENTER.x,
+        y: selectedLand?.location.y ?? PARK_CENTER.y,
+        land: selectedLand?.name,
+        estimatedLocation: true,
+        label: selectedLand?.name ?? 'Centro do parque',
+      }
+    }
+
+    if (startMode === 'attraction') {
+      const attraction = selectedAttractions.find((item) => item.id === startReference)
+        ?? selectedAttractions[0]
+      if (attraction) {
+        return {
+          ...attraction.location,
+          label: attraction.name,
+        }
+      }
+    }
+
+    if (startMode === 'center') {
+      return {
+        parkId,
+        attractionId: 'start-center',
+        ...PARK_CENTER,
+        estimatedLocation: true,
+        label: 'Centro do parque',
+      }
+    }
+
+    const entrance = parkEntrances[parkId] ?? { x: 50, y: 94 }
+    return {
+      parkId,
+      attractionId: 'start-entrance',
+      ...entrance,
+      land: 'Entrada',
+      estimatedLocation: true,
+      label: 'Entrada do parque',
+    }
+  }, [landOptions, parkId, selectedAttractions, startMode, startReference])
+
   const route = useMemo(
-    () => planAttractionRoute(selectedAttractions, routeMode),
-    [routeMode, selectedAttractions],
+    () => planAttractionRoute(selectedAttractions, routeMode, startPoint),
+    [routeMode, selectedAttractions, startPoint],
   )
 
   const toggleAttraction = (attractionId: string) => {
@@ -198,6 +257,68 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
             Distâncias estimadas com base em mapa simplificado.
           </p>
         </div>
+
+        <section className="route-start-section">
+          <div className="route-mode-heading">
+            <span className="section-kicker">Ponto inicial</span>
+            <h2>De onde você está começando?</h2>
+          </div>
+          <div className="route-start-controls">
+            <label>
+              <span>Tipo de local</span>
+              <select
+                value={startMode}
+                onChange={(event) => {
+                  setStartMode(event.target.value as RouteStartMode)
+                  setStartReference('')
+                }}
+              >
+                <option value="entrance">Entrada do parque</option>
+                <option value="center">Centro do parque</option>
+                <option value="land">Área específica</option>
+                <option value="attraction" disabled={!selectedAttractions.length}>
+                  Atração selecionada
+                </option>
+              </select>
+            </label>
+
+            {startMode === 'land' && (
+              <label>
+                <span>Área/land</span>
+                <select
+                  value={startReference || landOptions[0]?.name || ''}
+                  onChange={(event) => setStartReference(event.target.value)}
+                >
+                  {landOptions.map((land) => (
+                    <option key={land.name} value={land.name}>{land.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {startMode === 'attraction' && (
+              <label>
+                <span>Atração atual</span>
+                <select
+                  value={startReference || selectedAttractions[0]?.id || ''}
+                  onChange={(event) => setStartReference(event.target.value)}
+                >
+                  {selectedAttractions.map((attraction) => (
+                    <option key={attraction.id} value={attraction.id}>{attraction.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+        </section>
+
+        <ParkRouteMap
+          parkId={parkId}
+          parkName={selectedPark?.name ?? data?.park.name ?? 'Parque'}
+          accent={selectedPark?.accent ?? '#0a84ff'}
+          route={route}
+          startPoint={startPoint}
+        />
 
         <div className="planner-layout">
           <div className="planner-attractions-panel">
@@ -297,6 +418,10 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
               <>
                 <div className="route-summary-grid">
                   <div>
+                    <strong>{formatDistance(route.distanceFromStart)}</strong>
+                    <span>Início até 1ª parada</span>
+                  </div>
+                  <div>
                     <strong>{route.totalEstimatedWait} min</strong>
                     <span>Filas estimadas</span>
                   </div>
@@ -336,7 +461,7 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
                           </span>
                           {stop.distanceFromPrevious > 0 && (
                             <span className="route-leg-distance">
-                              ↝ {formatDistance(stop.distanceFromPrevious)} desde a anterior
+                              ↝ {formatDistance(stop.distanceFromPrevious)} {stop.order === 1 ? 'desde o início' : 'desde a anterior'}
                             </span>
                           )}
                         </div>

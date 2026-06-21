@@ -1,8 +1,5 @@
-import {
-  attractionLocations,
-  landCenters,
-  PARK_CENTER,
-} from '../data/attractionLocations'
+import { attractionLocations } from '../data/attractionLocations'
+import { PARK_CENTER, parkLandCenters } from '../data/parkLandCenters'
 import type {
   Attraction,
   ResolvedAttractionLocation,
@@ -42,7 +39,7 @@ export function resolveAttractionLocation(
     }
   }
 
-  const landCenter = landCenters[parkId]?.[attraction.land]
+  const landCenter = parkLandCenters[parkId]?.[attraction.land]
 
   return {
     parkId,

@@ -5,6 +5,7 @@ import type {
   RoutePlannerAttraction,
   RoutePlannerMode,
   RouteRecommendation,
+  RouteStartPoint,
   WaitTimePrediction,
 } from '../types'
 import { getPredictionForAttraction } from './predictions'
@@ -108,18 +109,19 @@ const compareInitialPriority = (
   return a.name.localeCompare(b.name, 'pt-BR')
 }
 
-const getNextStopScore = (
+const getCandidateScore = (
   candidate: RoutePlannerAttraction,
-  previous: RoutePlannerAttraction,
+  origin: RouteStartPoint | RoutePlannerAttraction,
   mode: RoutePlannerMode,
 ) => {
   const weights = modeWeights[mode]
+  const originLocation = 'location' in origin ? origin.location : origin
   const waitScore = Math.min(100, getWaitPriority(candidate))
   const distanceScore = Math.min(
     100,
-    calculateMapDistance(previous.location, candidate.location) / Math.SQRT2,
+    calculateMapDistance(originLocation, candidate.location) / Math.SQRT2,
   )
-  const sameLandBonus = previous.land === candidate.land ? -8 : 0
+  const sameLandBonus = origin.land === candidate.land ? -8 : 0
 
   return waitScore * weights.wait + distanceScore * weights.distance + sameLandBonus
 }
@@ -128,18 +130,21 @@ export function explainRouteDecision(
   attraction: RoutePlannerAttraction,
   previous: RoutePlannerAttraction | undefined,
   mode: RoutePlannerMode,
+  startPoint?: RouteStartPoint,
 ): RouteDecisionExplanation {
   const weights = modeWeights[mode]
   const waitScore = clampScore(100 - Math.min(100, getWaitPriority(attraction)))
   const predictionScore = getPredictionScore(attraction)
-  const distanceCost = previous
+  const origin = previous ?? startPoint
+  const originLocation = origin && 'location' in origin ? origin.location : origin
+  const distanceCost = origin
     ? Math.min(
         100,
-        calculateMapDistance(previous.location, attraction.location) / Math.SQRT2,
+        calculateMapDistance(originLocation!, attraction.location) / Math.SQRT2,
       )
     : 0
   const distanceScore = clampScore(100 - distanceCost)
-  const sameLandBonus = previous?.land === attraction.land ? 8 : 0
+  const sameLandBonus = origin?.land === attraction.land ? 8 : 0
   const score = clampScore(
     waitScore * weights.wait
       + distanceScore * weights.distance
@@ -149,9 +154,11 @@ export function explainRouteDecision(
 
   let primaryReason: RouteDecisionExplanation['primaryReason']
 
-  if (!previous && attraction.recommendation === 'GO_NOW') {
+  if (!previous && startPoint && distanceScore >= 82 && mode !== 'shortest-wait') {
+    primaryReason = 'evita deslocamento longo'
+  } else if (!previous && attraction.recommendation === 'GO_NOW') {
     primaryReason = 'melhor ir agora'
-  } else if (previous?.land === attraction.land) {
+  } else if (origin?.land === attraction.land) {
     primaryReason = 'está na mesma área'
   } else if (previous && distanceScore >= 82) {
     primaryReason = mode === 'shortest-walk'
@@ -181,6 +188,7 @@ export function explainRouteDecision(
 export function planAttractionRoute(
   selectedAttractions: RoutePlannerAttraction[],
   mode: RoutePlannerMode = 'balanced',
+  startPoint?: RouteStartPoint,
 ): PlannedRoute {
   if (!selectedAttractions.length) {
     return {
@@ -189,17 +197,23 @@ export function planAttractionRoute(
       totalEstimatedDistance: 0,
       landsVisited: 0,
       longestWalkingDistance: 0,
+      distanceFromStart: 0,
     }
   }
 
-  const remaining = [...selectedAttractions].sort(compareInitialPriority)
+  const remaining = [...selectedAttractions].sort((a, b) => {
+    if (!startPoint) return compareInitialPriority(a, b)
+    const scoreDifference =
+      getCandidateScore(a, startPoint, mode) - getCandidateScore(b, startPoint, mode)
+    return scoreDifference || compareInitialPriority(a, b)
+  })
   const orderedAttractions: RoutePlannerAttraction[] = [remaining.shift()!]
 
   while (remaining.length) {
     const previous = orderedAttractions[orderedAttractions.length - 1]
     remaining.sort((a, b) => {
       const scoreDifference =
-        getNextStopScore(a, previous, mode) - getNextStopScore(b, previous, mode)
+        getCandidateScore(a, previous, mode) - getCandidateScore(b, previous, mode)
       return scoreDifference || compareInitialPriority(a, b)
     })
     orderedAttractions.push(remaining.shift()!)
@@ -210,15 +224,16 @@ export function planAttractionRoute(
       ? attraction.predictedWait30Minutes ?? attraction.waitTime
       : attraction.waitTime
     const previous = orderedAttractions[index - 1]
+    const originLocation = previous?.location ?? startPoint
 
     return {
       ...attraction,
       order: index + 1,
       estimatedWait,
-      distanceFromPrevious: previous
-        ? estimateWalkingDistance(previous.location, attraction.location)
+      distanceFromPrevious: originLocation
+        ? estimateWalkingDistance(originLocation, attraction.location)
         : 0,
-      explanation: explainRouteDecision(attraction, previous, mode),
+      explanation: explainRouteDecision(attraction, previous, mode, startPoint),
     }
   })
 
@@ -234,5 +249,6 @@ export function planAttractionRoute(
       0,
       ...stops.map((stop) => stop.distanceFromPrevious),
     ),
+    distanceFromStart: stops[0]?.distanceFromPrevious ?? 0,
   }
 }

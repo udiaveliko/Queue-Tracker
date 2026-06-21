@@ -2144,6 +2144,190 @@ body {
   font-size: 8px;
 }
 
+.route-start-section {
+  margin-bottom: 24px;
+}
+
+.route-start-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.route-start-controls label {
+  min-height: 58px;
+  display: grid;
+  gap: 5px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--card);
+}
+
+.route-start-controls label > span {
+  color: var(--text-secondary);
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.route-start-controls select {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 650;
+  background: transparent;
+}
+
+.park-route-map {
+  --park-accent: var(--accent);
+  margin: 0 0 30px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 82% 8%, color-mix(in srgb, var(--park-accent) 13%, transparent), transparent 18rem),
+    var(--surface);
+  box-shadow: 0 18px 44px var(--shadow-color);
+}
+
+.park-route-map-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+
+.park-route-map-heading h2 {
+  margin: 4px 0 0;
+  color: var(--text-primary);
+  font-size: 20px;
+  letter-spacing: -.04em;
+}
+
+.park-route-map-heading > span {
+  color: var(--text-secondary);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.park-route-map-canvas {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--park-accent) 18%, var(--border));
+  border-radius: 18px;
+  background: var(--background);
+}
+
+.park-route-map svg {
+  width: 100%;
+  max-height: 430px;
+  display: block;
+  aspect-ratio: 16 / 9;
+}
+
+.route-map-background {
+  fill: color-mix(in srgb, var(--background) 94%, var(--park-accent));
+}
+
+.route-map-grid-line {
+  fill: none;
+  stroke: color-mix(in srgb, var(--text-primary) 7%, transparent);
+  stroke-width: .25;
+}
+
+.route-map-terrain {
+  fill: none;
+  stroke: color-mix(in srgb, var(--park-accent) 16%, var(--border));
+  stroke-width: .75;
+  stroke-dasharray: 2 2;
+}
+
+.route-map-path {
+  stroke: var(--park-accent);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  opacity: .82;
+}
+
+.route-map-arrow {
+  fill: var(--park-accent);
+}
+
+.route-map-start-ring {
+  fill: color-mix(in srgb, var(--park-accent) 12%, var(--background));
+  stroke: var(--park-accent);
+  stroke-width: .8;
+}
+
+.route-map-start-dot {
+  fill: var(--park-accent);
+}
+
+.route-map-stop {
+  fill: color-mix(in srgb, var(--park-accent) 72%, var(--background));
+  stroke: color-mix(in srgb, var(--park-accent) 55%, white);
+  stroke-width: .65;
+}
+
+.route-map-stop.is-estimated {
+  stroke-dasharray: 1.2 1;
+}
+
+.is-first-stop .route-map-stop {
+  fill: var(--park-accent);
+  stroke: white;
+  stroke-width: 1;
+  filter: drop-shadow(0 0 2px var(--park-accent));
+}
+
+.route-map-stop-number {
+  fill: white;
+  font-size: 3.5px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.route-map-label {
+  fill: var(--text-primary);
+  font-size: 2.8px;
+  font-weight: 750;
+  paint-order: stroke;
+  stroke: var(--background);
+  stroke-width: .8px;
+  stroke-linejoin: round;
+}
+
+.route-map-land-label {
+  fill: var(--text-secondary);
+  font-size: 2px;
+  paint-order: stroke;
+  stroke: var(--background);
+  stroke-width: .7px;
+}
+
+.route-map-start-label {
+  fill: var(--park-accent);
+}
+
+.park-route-map figcaption {
+  margin-top: 11px;
+  color: var(--text-secondary);
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.route-map-legend-dot {
+  width: 6px;
+  height: 6px;
+  display: inline-block;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--park-accent);
+}
+
 .planner-layout {
   display: grid;
   gap: 32px;
@@ -2358,7 +2542,7 @@ body {
 
 .route-summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
   gap: 7px;
   margin-bottom: 12px;
 }
@@ -2638,6 +2822,23 @@ body {
   .route-mode-control strong,
   .route-mode-control span {
     display: inline;
+  }
+
+  .route-start-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .park-route-map {
+    margin-right: -4px;
+    margin-left: -4px;
+    padding: 13px;
+    border-radius: 21px;
+  }
+
+  .park-route-map svg {
+    min-height: 260px;
+    max-height: 330px;
+    aspect-ratio: 1 / 1;
   }
 
   .route-mode-control span {
