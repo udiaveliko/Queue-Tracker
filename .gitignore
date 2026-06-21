@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-server
+.DS_Store
+*.local
+*.log
+.vite
+.npm-cache
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+.env
+.env.*
+!.env.example
+!.env.production.example
