@@ -38,7 +38,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     root.classList.add(`theme-${theme}`)
     root.style.colorScheme = theme
     document.querySelector('meta[name="theme-color"]')
-      ?.setAttribute('content', theme === 'dark' ? '#090a0b' : '#f2f3f5')
+      ?.setAttribute('content', theme === 'dark' ? '#090a0b' : '#eef2f7')
   }, [theme])
 
   return (

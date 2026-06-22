@@ -4,14 +4,22 @@ export interface NamedGeoCoordinate extends GeoCoordinate {
   name: string
 }
 
+export type OSMRouteLegSource =
+  | 'walking-osrm'
+  | 'internal-path'
+  | 'direct-fallback'
+
 export interface OSMRouteLeg {
   fromName: string
   toName: string
   coordinates: Array<[number, number]>
   distanceMeters: number
   durationSeconds: number
-  source: 'osrm' | 'fallback'
-  profile?: 'foot' | 'driving-compatible'
+  source: OSMRouteLegSource
+}
+
+export interface WalkingRouteLegOptions {
+  internalCoordinates?: GeoCoordinate[]
 }
 
 const OSRM_BASE_URL = 'https://router.project-osrm.org'
@@ -33,7 +41,14 @@ export function calculateGeoDistance(from: GeoCoordinate, to: GeoCoordinate) {
   return earthRadius * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
 }
 
-export function createFallbackLeg(
+const calculatePathDistance = (coordinates: GeoCoordinate[]) =>
+  coordinates.slice(1).reduce(
+    (total, coordinate, index) =>
+      total + calculateGeoDistance(coordinates[index], coordinate),
+    0,
+  )
+
+export function createDirectFallbackLeg(
   from: NamedGeoCoordinate,
   to: NamedGeoCoordinate,
 ): OSMRouteLeg {
@@ -48,23 +63,52 @@ export function createFallbackLeg(
     ],
     distanceMeters,
     durationSeconds: Math.max(60, Math.round(distanceMeters / 1.25)),
-    source: 'fallback',
+    source: 'direct-fallback',
   }
 }
 
-const fetchOSRMLeg = async (
+export function createInternalPathLeg(
   from: NamedGeoCoordinate,
   to: NamedGeoCoordinate,
-  profile: 'foot' | 'driving',
+  internalCoordinates: GeoCoordinate[],
+): OSMRouteLeg {
+  const path = [
+    from,
+    ...internalCoordinates,
+    to,
+  ].filter((coordinate, index, coordinates) =>
+    index === 0
+    || calculateGeoDistance(coordinates[index - 1], coordinate) >= 4,
+  )
+  const distanceMeters = Math.round(calculatePathDistance(path))
+
+  return {
+    fromName: from.name,
+    toName: to.name,
+    coordinates: path.map((coordinate) => [coordinate.lat, coordinate.lng]),
+    distanceMeters,
+    durationSeconds: Math.max(60, Math.round(distanceMeters / 1.25)),
+    source: 'internal-path',
+  }
+}
+
+export function buildOSRMWalkingUrl(
+  from: GeoCoordinate,
+  to: GeoCoordinate,
+) {
+  const coordinates = `${from.lng},${from.lat};${to.lng},${to.lat}`
+  return `${OSRM_BASE_URL}/route/v1/foot/${coordinates}?overview=full&geometries=geojson&steps=false`
+}
+
+const fetchOSRMWalkingLeg = async (
+  from: NamedGeoCoordinate,
+  to: NamedGeoCoordinate,
   signal?: AbortSignal,
 ): Promise<OSMRouteLeg | null> => {
-  const coordinates = `${from.lng},${from.lat};${to.lng},${to.lat}`
-  const url = `${OSRM_BASE_URL}/route/v1/${profile}/${coordinates}?overview=full&geometries=geojson&steps=false`
-  const response = await fetch(url, {
+  const response = await fetch(buildOSRMWalkingUrl(from, to), {
     signal,
     cache: 'no-store',
   })
-
   if (!response.ok) return null
 
   const payload = await response.json() as {
@@ -83,38 +127,47 @@ const fetchOSRMLeg = async (
     coordinates: route.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
     distanceMeters: Math.round(route.distance),
     durationSeconds: Math.max(1, Math.round(route.duration)),
-    source: 'osrm',
-    profile: profile === 'foot' ? 'foot' : 'driving-compatible',
+    source: 'walking-osrm',
   }
 }
 
 export async function getWalkingRouteLeg(
   from: NamedGeoCoordinate,
   to: NamedGeoCoordinate,
+  options: WalkingRouteLegOptions = {},
   signal?: AbortSignal,
 ): Promise<OSMRouteLeg> {
   try {
-    const walkingRoute = await fetchOSRMLeg(from, to, 'foot', signal)
+    const walkingRoute = await fetchOSRMWalkingLeg(from, to, signal)
     if (walkingRoute) return walkingRoute
-
-    const compatibleRoute = await fetchOSRMLeg(from, to, 'driving', signal)
-    if (compatibleRoute) return compatibleRoute
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error
   }
 
-  return createFallbackLeg(from, to)
+  if (options.internalCoordinates?.length) {
+    return createInternalPathLeg(from, to, options.internalCoordinates)
+  }
+
+  return createDirectFallbackLeg(from, to)
 }
 
 export async function getWalkingRouteLegs(
   points: NamedGeoCoordinate[],
+  options: WalkingRouteLegOptions[] = [],
   signal?: AbortSignal,
 ): Promise<OSMRouteLeg[]> {
   const legs: OSMRouteLeg[] = []
 
   for (let index = 0; index < points.length - 1; index += 1) {
     if (signal?.aborted) throw new DOMException('Operação cancelada.', 'AbortError')
-    legs.push(await getWalkingRouteLeg(points[index], points[index + 1], signal))
+    legs.push(
+      await getWalkingRouteLeg(
+        points[index],
+        points[index + 1],
+        options[index],
+        signal,
+      ),
+    )
   }
 
   return legs

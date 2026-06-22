@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import {
   attractionGeoLocations,
@@ -9,8 +10,11 @@ import {
   relativeLocationToGeo,
 } from '../src/data/attractionGeoLocations.ts'
 import {
+  buildOSRMWalkingUrl,
   calculateGeoDistance,
-  createFallbackLeg,
+  createDirectFallbackLeg,
+  createInternalPathLeg,
+  getWalkingRouteLeg,
 } from '../src/services/osmRouting.ts'
 
 test('todos os parques possuem centro e zoom para OpenStreetMap', () => {
@@ -77,12 +81,58 @@ test('rota direta calcula distância e caminhada sem serviço externo', () => {
   const from = { name: 'Entrada', lat: 28.4177, lng: -81.5812 }
   const to = { name: 'Atração', lat: 28.4187, lng: -81.5812 }
   const distance = calculateGeoDistance(from, to)
-  const route = createFallbackLeg(from, to)
+  const route = createDirectFallbackLeg(from, to)
 
   assert.ok(distance > 100 && distance < 120)
-  assert.equal(route.source, 'fallback')
+  assert.equal(route.source, 'direct-fallback')
   assert.equal(route.coordinates.length, 2)
   assert.equal(route.fromName, 'Entrada')
   assert.equal(route.toName, 'Atração')
   assert.ok(route.durationSeconds >= 60)
+})
+
+test('URL do OSRM usa exclusivamente o perfil foot', () => {
+  const url = buildOSRMWalkingUrl(
+    { lat: 28.4177, lng: -81.5812 },
+    { lat: 28.4191, lng: -81.5772 },
+  )
+  const source = readFileSync(
+    new URL('../src/services/osmRouting.ts', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(url, /\/route\/v1\/foot\//)
+  assert.doesNotMatch(source, /driving|driving-compatible|\/car\//i)
+})
+
+test('fallback interno nunca usa rota de carro', () => {
+  const from = { name: 'Entrada', lat: 28.4177, lng: -81.5812 }
+  const to = { name: 'Atração', lat: 28.4191, lng: -81.5772 }
+  const route = createInternalPathLeg(from, to, [
+    { lat: 28.4181, lng: -81.5800 },
+    { lat: 28.4187, lng: -81.5785 },
+  ])
+
+  assert.equal(route.source, 'internal-path')
+  assert.equal(route.coordinates.length, 4)
+})
+
+test('OSRM falhando gera somente linha direta ou caminho interno', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async () => new Response(null, { status: 404 })
+
+  try {
+    const from = { name: 'GPS', lat: 28.4177, lng: -81.5812 }
+    const to = { name: 'Space Mountain', lat: 28.4191503, lng: -81.5772484 }
+    const direct = await getWalkingRouteLeg(from, to)
+    const internal = await getWalkingRouteLeg(from, to, {
+      internalCoordinates: [{ lat: 28.4184, lng: -81.5794 }],
+    })
+
+    assert.equal(direct.source, 'direct-fallback')
+    assert.equal(direct.coordinates.length, 2)
+    assert.equal(internal.source, 'internal-path')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })

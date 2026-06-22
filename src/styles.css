@@ -23,6 +23,15 @@
   --danger: #ff453a;
   --surface-glass: rgba(8, 8, 9, .78);
   --shadow-color: rgba(0, 0, 0, .22);
+  --bg-gradient-start: #10131b;
+  --bg-gradient-end: #08090c;
+  --surface-elevated: #1d1f25;
+  --text-muted: #9a9da7;
+  --accent-blue: #4aa8ff;
+  --accent-purple: #9b8cff;
+  --accent-green: #55d98b;
+  --accent-orange: #ffad5c;
+  --accent-pink: #ff78a8;
 }
 
 .theme-dark {
@@ -38,21 +47,39 @@
   --danger: #ff453a;
   --surface-glass: rgba(8, 8, 9, .78);
   --shadow-color: rgba(0, 0, 0, .22);
+  --bg-gradient-start: #10131b;
+  --bg-gradient-end: #08090c;
+  --surface-elevated: #1d1f25;
+  --text-muted: #9a9da7;
+  --accent-blue: #4aa8ff;
+  --accent-purple: #9b8cff;
+  --accent-green: #55d98b;
+  --accent-orange: #ffad5c;
+  --accent-pink: #ff78a8;
 }
 
 .theme-light {
-  --background: #f1f2f4;
-  --surface: #f8f8fa;
-  --card: #ffffff;
-  --border: rgba(31, 35, 45, .1);
-  --text-primary: #17181c;
-  --text-secondary: #676a73;
-  --accent: #0878e8;
-  --success: #248a3d;
-  --warning: #a96e00;
-  --danger: #d92d27;
-  --surface-glass: rgba(248, 248, 250, .84);
-  --shadow-color: rgba(29, 34, 45, .1);
+  --background: #eef2f7;
+  --surface: #f7f9fc;
+  --card: #fcfdff;
+  --border: rgba(42, 55, 78, .17);
+  --text-primary: #172033;
+  --text-secondary: #4f5b6e;
+  --accent: #096fd2;
+  --success: #19733a;
+  --warning: #8a5b00;
+  --danger: #c62c32;
+  --surface-glass: rgba(247, 249, 252, .9);
+  --shadow-color: rgba(39, 55, 82, .13);
+  --bg-gradient-start: #f7f3ed;
+  --bg-gradient-end: #eaf1f8;
+  --surface-elevated: #ffffff;
+  --text-muted: #59667a;
+  --accent-blue: #096fd2;
+  --accent-purple: #6f57d9;
+  --accent-green: #197c46;
+  --accent-orange: #ad5a08;
+  --accent-pink: #bf3f72;
   --bg: var(--background);
   --surface-raised: var(--card);
   --muted: var(--text-secondary);
@@ -6440,4 +6467,500 @@ select {
   .wait-time strong {
     font-size: 32px;
   }
+}
+
+/* Premium palette and cross-theme contrast refinement */
+html,
+body {
+  background:
+    radial-gradient(circle at 85% -8%, color-mix(in srgb, var(--accent-blue) 12%, transparent), transparent 31rem),
+    linear-gradient(155deg, var(--bg-gradient-start), var(--bg-gradient-end));
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  color: var(--text-primary);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent-blue) 76%, white);
+  outline-offset: 3px;
+}
+
+button:disabled,
+input:disabled,
+select:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: .62;
+}
+
+.home-page,
+.park-page,
+.analytics-page,
+.analytics-dashboard,
+.accuracy-page,
+.planner-page,
+.collector-status-page {
+  background:
+    radial-gradient(circle at 88% 2%, color-mix(in srgb, var(--accent-blue) 9%, transparent), transparent 27rem),
+    radial-gradient(circle at 8% 28%, color-mix(in srgb, var(--accent-purple) 6%, transparent), transparent 24rem),
+    transparent;
+}
+
+.hero {
+  background:
+    radial-gradient(circle at 82% 24%, color-mix(in srgb, var(--accent-purple) 15%, transparent), transparent 19rem),
+    radial-gradient(circle at 18% 70%, color-mix(in srgb, var(--accent-blue) 10%, transparent), transparent 20rem);
+}
+
+.hero h1 span,
+.planner-hero h1 span {
+  color: var(--accent-purple);
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-pink));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.eyebrow,
+.analytics-eyebrow,
+.section-kicker {
+  color: color-mix(in srgb, var(--accent-blue) 70%, var(--text-secondary));
+}
+
+.hero-metric {
+  border-color: color-mix(in srgb, var(--accent-purple) 24%, var(--border));
+  background: color-mix(in srgb, var(--accent-purple) 7%, var(--card));
+}
+
+.planner-cta,
+.pwa-install-action {
+  color: white;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--accent-purple) 22%, transparent);
+}
+
+.analytics-dashboard-cta {
+  border-color: color-mix(in srgb, var(--accent-orange) 28%, var(--border));
+  background: color-mix(in srgb, var(--accent-orange) 8%, var(--card));
+  color: color-mix(in srgb, var(--accent-orange) 75%, var(--text-primary));
+}
+
+.live-pill {
+  border-color: color-mix(in srgb, var(--accent-green) 24%, var(--border));
+  background: color-mix(in srgb, var(--accent-green) 7%, var(--card));
+  color: var(--text-secondary);
+}
+
+.park-card {
+  border-color: color-mix(in srgb, var(--park-accent) 25%, var(--border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 7%, transparent),
+    0 14px 34px var(--shadow-color);
+}
+
+.park-card:hover {
+  border-color: color-mix(in srgb, var(--park-accent) 48%, var(--border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 10%, transparent),
+    0 18px 42px color-mix(in srgb, var(--park-accent) 14%, var(--shadow-color));
+}
+
+.attraction-card {
+  border-color: color-mix(in srgb, var(--wait-color) 20%, var(--border));
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--wait-color) 7%, transparent), transparent 12rem),
+    var(--card);
+  box-shadow:
+    inset 3px 0 0 color-mix(in srgb, var(--wait-color) 78%, transparent),
+    0 14px 34px var(--shadow-color);
+}
+
+.status,
+.trend,
+.card-updated,
+.rank {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-elevated) 84%, transparent);
+  color: var(--text-muted);
+}
+
+.status-open {
+  border-color: color-mix(in srgb, var(--accent-green) 28%, var(--border));
+  background: color-mix(in srgb, var(--accent-green) 10%, var(--card));
+  color: var(--accent-green);
+}
+
+.status-closed {
+  color: var(--text-muted);
+}
+
+.status-unavailable {
+  border-color: color-mix(in srgb, var(--accent-orange) 25%, var(--border));
+  background: color-mix(in srgb, var(--accent-orange) 9%, var(--card));
+  color: var(--accent-orange);
+}
+
+.prediction-panel,
+.daily-history,
+.route-mode-control,
+.route-start-controls label,
+.route-directions,
+.osm-map-summary span {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--surface-elevated) 74%, transparent);
+}
+
+.planned-route-panel,
+.park-route-map,
+.osm-park-route-map {
+  border-color: color-mix(in srgb, var(--accent-purple) 20%, var(--border));
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--accent-purple) 10%, transparent), transparent 18rem),
+    var(--surface);
+}
+
+.route-mode-control button.is-active,
+.planner-option.is-selected {
+  border-color: color-mix(in srgb, var(--accent-purple) 36%, var(--border));
+  background: color-mix(in srgb, var(--accent-purple) 11%, var(--card));
+}
+
+.analytics-dashboard,
+.db-hero {
+  background:
+    radial-gradient(circle at 85% 0, color-mix(in srgb, var(--accent-blue) 12%, transparent), transparent 28rem),
+    radial-gradient(circle at 12% 28%, color-mix(in srgb, var(--accent-purple) 8%, transparent), transparent 23rem);
+}
+
+.db-summary-grid > div:nth-child(4n + 1) {
+  border-color: color-mix(in srgb, var(--accent-blue) 24%, var(--border));
+}
+
+.db-summary-grid > div:nth-child(4n + 2) {
+  border-color: color-mix(in srgb, var(--accent-purple) 24%, var(--border));
+}
+
+.db-summary-grid > div:nth-child(4n + 3) {
+  border-color: color-mix(in srgb, var(--accent-green) 24%, var(--border));
+}
+
+.db-summary-grid > div:nth-child(4n + 4) {
+  border-color: color-mix(in srgb, var(--accent-orange) 24%, var(--border));
+}
+
+.collector-status-page,
+.collector-status-hero {
+  background:
+    radial-gradient(circle at 82% 0, color-mix(in srgb, var(--accent-green) 11%, transparent), transparent 27rem),
+    radial-gradient(circle at 10% 40%, color-mix(in srgb, var(--accent-blue) 6%, transparent), transparent 22rem);
+}
+
+.collector-main-status,
+.collector-summary-card,
+.data-quality-summary {
+  border-color: color-mix(in srgb, var(--accent-green) 19%, var(--border));
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--accent-green) 8%, transparent), transparent 14rem),
+    var(--surface);
+}
+
+.collector-run-button {
+  color: white;
+  background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent-green) 18%, transparent);
+}
+
+.pwa-install-card {
+  border-color: color-mix(in srgb, var(--accent-pink) 22%, var(--border));
+  background:
+    radial-gradient(circle at 8% 0, color-mix(in srgb, var(--accent-pink) 12%, transparent), transparent 18rem),
+    radial-gradient(circle at 90% 100%, color-mix(in srgb, var(--accent-blue) 9%, transparent), transparent 15rem),
+    var(--card);
+}
+
+.pwa-install-icon {
+  color: var(--accent-pink);
+  background: color-mix(in srgb, var(--accent-pink) 11%, var(--surface));
+}
+
+.theme-toggle-track {
+  border-color: color-mix(in srgb, var(--accent-purple) 24%, var(--border));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent-purple) 18%, var(--surface)),
+    color-mix(in srgb, var(--accent-blue) 13%, var(--surface))
+  );
+}
+
+.theme-toggle-thumb {
+  color: var(--accent-purple);
+  background: var(--surface-elevated);
+  box-shadow: 0 3px 9px var(--shadow-color);
+}
+
+.theme-light body {
+  background:
+    radial-gradient(circle at 82% -8%, rgba(65, 126, 195, .14), transparent 31rem),
+    linear-gradient(155deg, var(--bg-gradient-start), var(--bg-gradient-end));
+}
+
+.theme-light .home-page,
+.theme-light .park-page,
+.theme-light .analytics-page,
+.theme-light .analytics-dashboard,
+.theme-light .accuracy-page,
+.theme-light .planner-page,
+.theme-light .collector-status-page {
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at 86% 0, rgba(67, 123, 191, .09), transparent 28rem),
+    transparent;
+}
+
+.theme-light .topbar,
+.theme-light .park-nav {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-glass);
+  box-shadow: 0 7px 22px rgba(39, 55, 82, .08);
+}
+
+.theme-light :is(
+  .hero > p,
+  .planner-hero > p,
+  .analytics-hero > p,
+  .accuracy-hero > p,
+  .db-hero > p,
+  .collector-status-hero > p,
+  .park-location,
+  .attraction-info > p,
+  .planner-option-copy small,
+  .route-stop-copy > span,
+  .section-kicker,
+  .eyebrow,
+  .card-updated,
+  .prediction-recommendation small,
+  .prediction-values span,
+  .collector-auto-refresh,
+  .db-section-heading > span,
+  .db-insights span,
+  .db-insights small,
+  .collector-main-status > small,
+  .collector-time-grid span,
+  .collector-metrics-grid span,
+  .data-quality-metrics span,
+  .route-map-key,
+  .osm-map-warning,
+  .gps-location-actions small
+) {
+  color: var(--text-muted);
+}
+
+.theme-light :is(
+  .park-card,
+  .attraction-card,
+  .analytics-card,
+  .weather-card,
+  .planned-route-panel,
+  .park-route-map,
+  .osm-park-route-map,
+  .db-park-section,
+  .db-hour-card,
+  .db-ranking-card,
+  .db-attraction-detail,
+  .accuracy-ranking-card,
+  .attraction-accuracy-card,
+  .collector-summary-card,
+  .collector-main-status,
+  .data-quality-summary,
+  .collector-time-grid > div,
+  .db-summary-grid > div,
+  .db-insights > div
+) {
+  border-color: var(--border);
+  background-color: var(--card);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .92),
+    0 12px 30px var(--shadow-color);
+}
+
+.theme-light .park-card {
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--park-accent) 18%, transparent), transparent 10rem),
+    linear-gradient(145deg, #fffefa, #f7f9fc);
+}
+
+.theme-light .attraction-card {
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--wait-color) 9%, transparent), transparent 12rem),
+    linear-gradient(145deg, #fffefa, #f7f9fc);
+}
+
+.theme-light :is(
+  .search-field,
+  .segmented-control,
+  .sort-control,
+  .planner-park-select,
+  .route-start-controls label,
+  .route-mode-control,
+  .db-section-heading select
+) {
+  border-color: rgba(42, 55, 78, .2);
+  background: #fbfcfe;
+  color: var(--text-primary);
+  box-shadow: inset 0 1px 0 #fff, 0 6px 18px rgba(39, 55, 82, .07);
+}
+
+.theme-light :is(
+  input,
+  select,
+  textarea,
+  .search-field input,
+  .sort-control select,
+  .planner-park-select select,
+  .route-start-controls select,
+  .db-section-heading select
+) {
+  color: var(--text-primary);
+  color-scheme: light;
+}
+
+.theme-light input::placeholder {
+  color: #68758a;
+  opacity: 1;
+}
+
+.theme-light select option {
+  color: #172033;
+  background: #fcfdff;
+}
+
+.theme-light :is(
+  .planner-option,
+  .route-stop,
+  .daily-history > div,
+  .prediction-panel,
+  .collector-metrics-grid > div,
+  .data-quality-metrics > div,
+  .db-attraction-detail > div span,
+  .accuracy-summary-grid > div
+) {
+  border-color: rgba(42, 55, 78, .14);
+  background: rgba(245, 248, 252, .94);
+}
+
+.theme-light :is(
+  .planner-option-copy strong,
+  .route-stop-copy > strong,
+  .attraction-info h3,
+  .db-park-ranking button > strong,
+  .db-ranking-card li button > strong,
+  .collector-main-status > strong,
+  .collector-time-grid strong,
+  .collector-metrics-grid strong,
+  .db-insights strong,
+  .db-attraction-detail > div strong,
+  .prediction-values strong
+) {
+  color: var(--text-primary);
+}
+
+.theme-light :is(
+  .live-pill,
+  .icon-button,
+  .analytics-link,
+  .analytics-dashboard-cta,
+  .collector-status-link,
+  .osm-map-heading-actions button,
+  .osm-map-heading a
+) {
+  border-color: var(--border);
+  color: var(--text-primary);
+  background: rgba(252, 253, 255, .9);
+}
+
+.theme-light .status,
+.theme-light .trend,
+.theme-light .rank {
+  border-color: rgba(42, 55, 78, .16);
+  background: rgba(236, 241, 247, .95);
+  color: #48566b;
+}
+
+.theme-light .status-open {
+  border-color: rgba(25, 115, 58, .25);
+  background: rgba(25, 115, 58, .1);
+  color: #11652f;
+}
+
+.theme-light .status-closed {
+  color: #556176;
+}
+
+.theme-light .status-unavailable {
+  border-color: rgba(173, 90, 8, .25);
+  background: rgba(173, 90, 8, .1);
+  color: #8a4705;
+}
+
+.theme-light .trend-up {
+  color: #b6262d;
+}
+
+.theme-light .trend-down {
+  color: #146b38;
+}
+
+.theme-light .trend-stable {
+  color: #4f5b6e;
+}
+
+.theme-light .planner-cta,
+.theme-light .collector-run-button,
+.theme-light .pwa-install-action {
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+}
+
+.theme-light .collector-run-button {
+  background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+}
+
+.theme-light .theme-toggle-track {
+  border-color: rgba(42, 55, 78, .2);
+  background: linear-gradient(90deg, #e8e4fa, #dcecfb);
+}
+
+.theme-light .theme-toggle-thumb {
+  color: #9a5b00;
+  background: #fffdf8;
+  box-shadow: 0 3px 9px rgba(39, 55, 82, .2);
+}
+
+.theme-light .leaflet-container {
+  background: #dce5ee;
+}
+
+.theme-light .osm-map-shell {
+  border-color: rgba(42, 55, 78, .2);
+}
+
+.theme-light .osm-routing-loading,
+.theme-light .osm-routing-warning,
+.theme-light .gps-location-message,
+.theme-light .gps-outside-warning {
+  color: var(--text-secondary);
+}
+
+.theme-light button:hover:not(:disabled),
+.theme-light a:hover {
+  filter: saturate(1.06) brightness(.985);
 }

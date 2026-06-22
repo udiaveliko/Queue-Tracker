@@ -13,13 +13,18 @@ import {
   getAttractionGeoLocation,
   getStartPointGeoLocation,
   parkGeoConfigs,
+  relativeLocationToGeo,
   type GeoCoordinate,
 } from '../data/attractionGeoLocations'
+import { PARK_CENTER, parkLandCenters } from '../data/parkLandCenters'
 import {
-  createFallbackLeg,
+  calculateGeoDistance,
+  createDirectFallbackLeg,
+  createInternalPathLeg,
   getWalkingRouteLegs,
   type NamedGeoCoordinate,
   type OSMRouteLeg,
+  type WalkingRouteLegOptions,
 } from '../services/osmRouting'
 import type { PlannedRoute, RouteStartPoint } from '../types'
 
@@ -120,6 +125,40 @@ const createDirectionIcon = (
 const getLegMidpoint = (coordinates: Array<[number, number]>) =>
   coordinates[Math.floor(coordinates.length / 2)]
 
+const createInternalPathOptions = (
+  parkId: string,
+  points: NamedGeoCoordinate[],
+  route: PlannedRoute,
+  startPoint: RouteStartPoint,
+): WalkingRouteLegOptions[] => {
+  const config = parkGeoConfigs[parkId]
+  if (!config) return []
+
+  return points.slice(0, -1).map((from, index) => {
+    const to = points[index + 1]
+    const bothInsidePark =
+      calculateGeoDistance(from, config) <= 3_000
+      && calculateGeoDistance(to, config) <= 3_000
+
+    if (!bothInsidePark) return {}
+
+    const fromLand = index === 0 ? startPoint.land : route.stops[index - 1]?.land
+    const toLand = route.stops[index]?.land
+    const anchors = [
+      fromLand ? parkLandCenters[parkId]?.[fromLand] : undefined,
+      fromLand !== toLand ? PARK_CENTER : undefined,
+      toLand ? parkLandCenters[parkId]?.[toLand] : undefined,
+    ]
+      .flatMap((anchor) => {
+        if (!anchor) return []
+        const geo = relativeLocationToGeo(parkId, anchor)
+        return geo ? [geo] : []
+      })
+
+    return anchors.length ? { internalCoordinates: anchors } : {}
+  })
+}
+
 export function OSMParkRouteMap({
   parkId,
   parkName,
@@ -157,10 +196,21 @@ export function OSMParkRouteMap({
     [startGeo, startPoint.label, stopLocations],
   )
   const fallbackLegs = useMemo(
-    () => namedPoints.slice(0, -1).map((point, index) =>
-      createFallbackLeg(point, namedPoints[index + 1]),
-    ),
-    [namedPoints],
+    () => {
+      const options = createInternalPathOptions(parkId, namedPoints, route, startPoint)
+      return namedPoints.slice(0, -1).map((point, index) => {
+        const to = namedPoints[index + 1]
+        const internalCoordinates = options[index]?.internalCoordinates
+        return internalCoordinates?.length
+          ? createInternalPathLeg(point, to, internalCoordinates)
+          : createDirectFallbackLeg(point, to)
+      })
+    },
+    [namedPoints, parkId, route, startPoint],
+  )
+  const walkingOptions = useMemo(
+    () => createInternalPathOptions(parkId, namedPoints, route, startPoint),
+    [namedPoints, parkId, route, startPoint],
   )
   const [routeLegs, setRouteLegs] = useState<OSMRouteLeg[]>(fallbackLegs)
   const [selectedLegIndex, setSelectedLegIndex] = useState<number | null>(null)
@@ -179,7 +229,7 @@ export function OSMParkRouteMap({
     }
 
     setIsCalculating(true)
-    void getWalkingRouteLegs(namedPoints, controller.signal)
+    void getWalkingRouteLegs(namedPoints, walkingOptions, controller.signal)
       .then(setRouteLegs)
       .catch(() => setRouteLegs(fallbackLegs))
       .finally(() => {
@@ -187,7 +237,7 @@ export function OSMParkRouteMap({
       })
 
     return () => controller.abort()
-  }, [fallbackLegs, namedPoints])
+  }, [fallbackLegs, namedPoints, walkingOptions])
 
   if (!config || !startGeo) return null
 
@@ -203,8 +253,8 @@ export function OSMParkRouteMap({
       : namedPoints.map((point) => [point.lat, point.lng] as [number, number])
   const totalDistance = routeLegs.reduce((total, leg) => total + leg.distanceMeters, 0)
   const totalDuration = routeLegs.reduce((total, leg) => total + leg.durationSeconds, 0)
-  const hasFallback = routeLegs.some((leg) => leg.source === 'fallback')
-  const usesCompatibleProfile = routeLegs.some((leg) => leg.profile === 'driving-compatible')
+  const hasDirectFallback = routeLegs.some((leg) => leg.source === 'direct-fallback')
+  const hasInternalPath = routeLegs.some((leg) => leg.source === 'internal-path')
 
   return (
     <section className="osm-park-route-map" style={{ '--park-accent': accent } as CSSProperties}>
@@ -273,7 +323,11 @@ export function OSMParkRouteMap({
                   color: accent,
                   weight: isActive ? 8 : 5,
                   opacity: isMuted ? .22 : isActive ? 1 : .72,
-                  dashArray: leg.source === 'fallback' ? '8 7' : undefined,
+                  dashArray: leg.source === 'direct-fallback'
+                    ? '8 7'
+                    : leg.source === 'internal-path'
+                      ? '4 4'
+                      : undefined,
                 }}
                 eventHandlers={{
                   click: () => setSelectedLegIndex(index),
@@ -322,14 +376,14 @@ export function OSMParkRouteMap({
         </MapContainer>
       </div>
 
-      {hasFallback && (
+      {hasDirectFallback && (
         <p className="osm-routing-warning" role="status">
-          Caminho exato indisponível. Exibindo direção aproximada nos trechos pontilhados.
+          Caminho caminhável exato indisponível. Mostrando direção aproximada.
         </p>
       )}
-      {!hasFallback && usesCompatibleProfile && (
+      {hasInternalPath && (
         <p className="osm-routing-warning" role="status">
-          O OSRM público não disponibilizou caminhada; o traçado viário compatível pode variar dos caminhos internos.
+          Rota estimada por caminhos internos do parque.
         </p>
       )}
 
@@ -355,7 +409,13 @@ export function OSMParkRouteMap({
                   <span className="route-direction-copy">
                     <small>{leg.fromName}</small>
                     <strong>{leg.toName}</strong>
-                    <em>{leg.source === 'osrm' ? 'Caminho calculado' : 'Direção aproximada'}</em>
+                    <em>
+                      {leg.source === 'walking-osrm'
+                        ? 'Caminho caminhável'
+                        : leg.source === 'internal-path'
+                          ? 'Caminho interno estimado'
+                          : 'Direção aproximada'}
+                    </em>
                   </span>
                   <span className="route-direction-distance">
                     <strong>{formatDistance(leg.distanceMeters)}</strong>
@@ -371,7 +431,13 @@ export function OSMParkRouteMap({
       <div className="osm-map-summary">
         <span><strong>{formatDistance(totalDistance)}</strong> distância estimada</span>
         <span><strong>{formatDuration(totalDuration)}</strong> caminhada estimada</span>
-        <span>{hasFallback ? 'Rota parcialmente aproximada' : 'Trechos calculados pelo OSRM'}</span>
+        <span>
+          {hasDirectFallback
+            ? 'Rota parcialmente aproximada'
+            : hasInternalPath
+              ? 'Rota por caminhos internos'
+              : 'Caminhada calculada pelo OSRM'}
+        </span>
       </div>
       <div className="osm-position-legend" aria-label="Legenda de precisão das posições">
         <span><i className="is-verified" /> posição verificada</span>

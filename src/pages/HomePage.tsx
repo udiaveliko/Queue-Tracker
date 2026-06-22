@@ -30,7 +30,7 @@ export function HomePage({
 
       <section className="hero">
         <div className="eyebrow"><SparkIcon /> Orlando, Florida</div>
-        <h1>Menos fila.<br /><span>Mais parque.</span></h1>
+        <h1>Menos fila.<br /><span>Mais diversão.</span></h1>
         <p>
           Compare tempos de espera e descubra sua próxima atração
           sem perder o ritmo do dia.
