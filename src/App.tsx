@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { AnalyticsDashboard } from './pages/AnalyticsDashboard'
 import { HomePage } from './pages/HomePage'
@@ -6,15 +7,22 @@ import { ParkPage } from './pages/ParkPage'
 import { PlannerPage } from './pages/PlannerPage'
 import { PredictionAccuracyPage } from './pages/PredictionAccuracyPage'
 import { CollectorStatusPage } from './pages/CollectorStatusPage'
+import { AlertsPage } from './pages/AlertsPage'
+import { AlertToast } from './components/AlertToast'
+import { LiveAttractionTracker } from './components/LiveAttractionTracker'
 
 interface AppRoute {
   parkId: string | null
-  page: 'home' | 'park' | 'analytics' | 'analytics-dashboard' | 'collector-status' | 'prediction-accuracy' | 'planner'
+  page: 'home' | 'park' | 'analytics' | 'analytics-dashboard' | 'collector-status' | 'prediction-accuracy' | 'planner' | 'alerts'
 }
 
 const getRouteFromPath = (): AppRoute => {
   if (window.location.pathname === '/planner') {
     return { parkId: null, page: 'planner' }
+  }
+
+  if (window.location.pathname === '/alerts') {
+    return { parkId: null, page: 'alerts' }
   }
 
   if (window.location.pathname === '/analytics-dashboard') {
@@ -90,12 +98,35 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
 
+  const openAlerts = () => {
+    window.history.pushState({}, '', '/alerts')
+    setRoute({ parkId: null, page: 'alerts' })
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }
+
+  const withLiveAlerts = (page: ReactNode) => (
+    <>
+      {page}
+      <LiveAttractionTracker
+        onOpenAlerts={openAlerts}
+        onOpenPlanner={openPlanner}
+      />
+      <AlertToast />
+    </>
+  )
+
   if (route.page === 'planner') {
-    return <PlannerPage onBack={goHome} />
+    return withLiveAlerts(<PlannerPage onBack={goHome} />)
+  }
+
+  if (route.page === 'alerts') {
+    return withLiveAlerts(
+      <AlertsPage onBack={goHome} onOpenPark={selectPark} />,
+    )
   }
 
   if (route.page === 'analytics-dashboard') {
-    return (
+    return withLiveAlerts(
       <AnalyticsDashboard
         onBack={goHome}
         onOpenCollectorStatus={openCollectorStatus}
@@ -104,11 +135,11 @@ function App() {
   }
 
   if (route.page === 'collector-status') {
-    return <CollectorStatusPage onBack={openAnalyticsDashboard} />
+    return withLiveAlerts(<CollectorStatusPage onBack={openAnalyticsDashboard} />)
   }
 
   if (route.page === 'prediction-accuracy' && route.parkId) {
-    return (
+    return withLiveAlerts(
       <PredictionAccuracyPage
         parkId={route.parkId}
         onBack={() => openAnalytics(route.parkId!)}
@@ -117,7 +148,7 @@ function App() {
   }
 
   if (route.page === 'analytics' && route.parkId) {
-    return (
+    return withLiveAlerts(
       <AnalyticsPage
         parkId={route.parkId}
         onBack={() => selectPark(route.parkId!)}
@@ -127,20 +158,22 @@ function App() {
   }
 
   if (route.page === 'park' && route.parkId) {
-    return (
+    return withLiveAlerts(
       <ParkPage
         parkId={route.parkId}
         onBack={goHome}
         onOpenAnalytics={() => openAnalytics(route.parkId!)}
+        onOpenAlerts={openAlerts}
       />
     )
   }
 
-  return (
+  return withLiveAlerts(
     <HomePage
       onSelectPark={selectPark}
       onOpenPlanner={openPlanner}
       onOpenAnalyticsDashboard={openAnalyticsDashboard}
+      onOpenAlerts={openAlerts}
     />
   )
 }

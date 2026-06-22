@@ -1,13 +1,15 @@
 import type {
+  QueueAlert,
   StoredPrediction,
   WaitTimeHistoryEntry,
 } from '../../types'
 
-export type StorageCollection = 'waitTimeHistory' | 'predictions'
+export type StorageCollection = 'waitTimeHistory' | 'predictions' | 'alerts'
 
 export interface StorageCollectionMap {
   waitTimeHistory: WaitTimeHistoryEntry[]
   predictions: StoredPrediction[]
+  alerts: QueueAlert[]
 }
 
 export interface StorageAdapter {

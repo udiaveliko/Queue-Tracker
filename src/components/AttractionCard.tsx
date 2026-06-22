@@ -3,7 +3,14 @@ import type {
   WaitTimeHistoryStats,
   WaitTimePrediction,
 } from '../types'
-import { ClockIcon, MinusIcon, TrendDownIcon, TrendUpIcon } from './Icons'
+import {
+  BellFilledIcon,
+  BellIcon,
+  ClockIcon,
+  MinusIcon,
+  TrendDownIcon,
+  TrendUpIcon,
+} from './Icons'
 import { AttractionIcon } from './AttractionIcon'
 
 interface AttractionCardProps {
@@ -13,6 +20,8 @@ interface AttractionCardProps {
   historyStats: WaitTimeHistoryStats
   prediction: WaitTimePrediction
   parkId: string
+  hasActiveAlert: boolean
+  onCreateAlert: () => void
 }
 
 const statusLabel = {
@@ -52,6 +61,8 @@ export function AttractionCard({
   historyStats,
   prediction,
   parkId,
+  hasActiveAlert,
+  onCreateAlert,
 }: AttractionCardProps) {
   const isOpen = attraction.status === 'open'
   const trend = trendContent[attraction.trend ?? 'stable']
@@ -77,19 +88,36 @@ export function AttractionCard({
           </div>
         </div>
 
-        <div className="wait-time">
-          {isOpen && attraction.waitTime !== null ? (
-            <>
-              <strong>{attraction.waitTime}</strong>
-              <span>min</span>
-            </>
-          ) : (
-            <strong className="dash">—</strong>
-          )}
+        <div className="attraction-card-actions">
+          <button
+            type="button"
+            className={`attraction-alert-button ${hasActiveAlert ? 'is-active' : ''}`}
+            onClick={onCreateAlert}
+            aria-label={`${hasActiveAlert ? 'Editar alerta de' : 'Criar alerta para'} ${attraction.name}`}
+            aria-pressed={hasActiveAlert}
+          >
+            {hasActiveAlert ? <BellFilledIcon /> : <BellIcon />}
+          </button>
+          <div className="wait-time">
+            {isOpen && attraction.waitTime !== null ? (
+              <>
+                <strong>{attraction.waitTime}</strong>
+                <span>min</span>
+              </>
+            ) : (
+              <strong className="dash">—</strong>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="attraction-card-footer">
+        {hasActiveAlert && (
+          <span className="monitoring-badge">
+            <BellFilledIcon />
+            Monitorando
+          </span>
+        )}
         <span className={`status status-${attraction.status}`}>
           <i />
           {statusLabel[attraction.status]}

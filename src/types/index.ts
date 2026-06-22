@@ -231,3 +231,43 @@ export interface PredictionAccuracyRankingItem {
   accuracy: number
   timestamp: string
 }
+
+export type QueueAlertType =
+  | 'WAIT_TIME'
+  | 'ATTRACTION_OPEN'
+  | 'PREDICTION_DROP'
+  | 'BEST_TIME'
+
+export type AlertDeliveryChannel = 'IN_APP'
+
+export interface QueueAlert {
+  id: string
+  parkId: string
+  parkName: string
+  attractionId: string
+  attractionName: string
+  attractionLand: string
+  type: QueueAlertType
+  targetWaitTime?: number
+  active: boolean
+  createdAt: string
+  updatedAt: string
+  triggeredAt?: string
+  triggerMessage?: string
+  lastStatus?: AttractionStatus
+  lastWaitTime?: number | null
+  deliveryChannels: AlertDeliveryChannel[]
+}
+
+export interface AlertEvaluationSnapshot {
+  attraction: Attraction
+  prediction: WaitTimePrediction
+  evaluatedAt: string
+}
+
+export type LiveTrackerState =
+  | 'FAR_FROM_TARGET'
+  | 'GETTING_CLOSE'
+  | 'GO_NOW'
+  | 'CLOSED'
+  | 'INSUFFICIENT_DATA'

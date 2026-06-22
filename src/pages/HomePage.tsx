@@ -1,4 +1,4 @@
-import { ArrowUpRightIcon, SparkIcon } from '../components/Icons'
+import { ArrowUpRightIcon, BellIcon, SparkIcon } from '../components/Icons'
 import { Logo } from '../components/Logo'
 import { ParkCard } from '../components/ParkCard'
 import { getParks } from '../services/waitTimes'
@@ -9,12 +9,14 @@ interface HomePageProps {
   onSelectPark: (parkId: string) => void
   onOpenPlanner: () => void
   onOpenAnalyticsDashboard: () => void
+  onOpenAlerts: () => void
 }
 
 export function HomePage({
   onSelectPark,
   onOpenPlanner,
   onOpenAnalyticsDashboard,
+  onOpenAlerts,
 }: HomePageProps) {
   const parks = getParks()
 
@@ -49,6 +51,10 @@ export function HomePage({
           <button className="analytics-dashboard-cta" type="button" onClick={onOpenAnalyticsDashboard}>
             Ver análises
             <ArrowUpRightIcon />
+          </button>
+          <button className="analytics-dashboard-cta alerts-home-cta" type="button" onClick={onOpenAlerts}>
+            <BellIcon />
+            Meus alertas
           </button>
         </div>
       </section>

@@ -7,6 +7,7 @@ import type {
 const STORAGE_KEYS: Record<StorageCollection, string> = {
   waitTimeHistory: 'orlando-queue-tracker:wait-time-history:v1',
   predictions: 'orlando-queue-tracker:prediction-accuracy:v1',
+  alerts: 'orlando-queue-tracker:alerts:v1',
 }
 
 const emptyCollection = <K extends StorageCollection>(): StorageCollectionMap[K] =>

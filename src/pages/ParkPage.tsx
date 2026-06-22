@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AttractionCard } from '../components/AttractionCard'
-import { ArrowLeftIcon, ChartIcon, ClockIcon, RefreshIcon, SearchIcon, SortIcon } from '../components/Icons'
+import { ArrowLeftIcon, BellIcon, ChartIcon, ClockIcon, RefreshIcon, SearchIcon, SortIcon } from '../components/Icons'
 import { SkeletonList } from '../components/SkeletonList'
 import { WeatherCard } from '../components/WeatherCard'
 import { ParkHeroArt } from '../components/ParkHeroArt'
 import { ParkIcon } from '../components/ParkIcon'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { AlertModal } from '../components/AlertModal'
 import { getParkWaitTimes } from '../services/waitTimes'
 import { getParkWeather } from '../services/weather'
 import { getDailyStatsForAttraction } from '../services/waitTimeHistory'
 import { getPredictionForAttraction } from '../services/predictions'
-import type { ParkWaitTimes, ParkWeather } from '../types'
+import type { Attraction, ParkWaitTimes, ParkWeather, QueueAlertType } from '../types'
+import {
+  ALERTS_CHANGED_EVENT,
+  createQueueAlert,
+  evaluateAlertsForPark,
+  getActiveAlerts,
+} from '../services/alerts'
 import {
   sortAttractions,
   type AttractionSortOption,
@@ -20,6 +27,7 @@ interface ParkPageProps {
   parkId: string
   onBack: () => void
   onOpenAnalytics: () => void
+  onOpenAlerts: () => void
 }
 
 const REFRESH_INTERVAL = 60_000
@@ -32,7 +40,12 @@ const filters: Array<{ value: StatusFilter; label: string }> = [
   { value: 'closed', label: 'Fechadas' },
 ]
 
-export function ParkPage({ parkId, onBack, onOpenAnalytics }: ParkPageProps) {
+export function ParkPage({
+  parkId,
+  onBack,
+  onOpenAnalytics,
+  onOpenAlerts,
+}: ParkPageProps) {
   const [data, setData] = useState<ParkWaitTimes | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -43,6 +56,8 @@ export function ParkPage({ parkId, onBack, onOpenAnalytics }: ParkPageProps) {
   const [weather, setWeather] = useState<ParkWeather | null>(null)
   const [isWeatherLoading, setIsWeatherLoading] = useState(true)
   const [weatherError, setWeatherError] = useState(false)
+  const [alertAttraction, setAlertAttraction] = useState<Attraction | null>(null)
+  const [, setAlertsRevision] = useState(0)
 
   const loadWaitTimes = useCallback(async (background = false) => {
     if (background) setIsRefreshing(true)
@@ -51,6 +66,12 @@ export function ParkPage({ parkId, onBack, onOpenAnalytics }: ParkPageProps) {
     try {
       const response = await getParkWaitTimes(parkId)
       setData(response)
+      evaluateAlertsForPark(
+        parkId,
+        response.park.attractions,
+        (attractionId) => getPredictionForAttraction(parkId, attractionId),
+        response.lastUpdated,
+      )
       setError(null)
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar as filas.')
@@ -59,6 +80,12 @@ export function ParkPage({ parkId, onBack, onOpenAnalytics }: ParkPageProps) {
       setIsRefreshing(false)
     }
   }, [parkId])
+
+  useEffect(() => {
+    const refreshAlerts = () => setAlertsRevision((value) => value + 1)
+    window.addEventListener(ALERTS_CHANGED_EVENT, refreshAlerts)
+    return () => window.removeEventListener(ALERTS_CHANGED_EVENT, refreshAlerts)
+  }, [])
 
   useEffect(() => {
     void loadWaitTimes()
@@ -110,6 +137,7 @@ export function ParkPage({ parkId, onBack, onOpenAnalytics }: ParkPageProps) {
   }, [data, query, sortOption, statusFilter])
 
   const openAttractions = data?.park.attractions.filter((item) => item.status === 'open') ?? []
+  const activeParkAlerts = getActiveAlerts().filter((alert) => alert.parkId === parkId)
   const averageWait = openAttractions.length
     ? Math.round(openAttractions.reduce((sum, item) => sum + (item.waitTime ?? 0), 0) / openAttractions.length)
     : 0
@@ -168,6 +196,10 @@ export function ParkPage({ parkId, onBack, onOpenAnalytics }: ParkPageProps) {
             <button className="analytics-link" type="button" onClick={onOpenAnalytics}>
               <ChartIcon />
               Análises
+            </button>
+            <button className="analytics-link alerts-link" type="button" onClick={onOpenAlerts}>
+              <BellIcon />
+              Alertas
             </button>
             <span className={`live-pill ${data?.dataSource === 'mock' ? 'is-mock' : ''}`}>
               <i />
@@ -293,6 +325,14 @@ export function ParkPage({ parkId, onBack, onOpenAnalytics }: ParkPageProps) {
                   historyStats={getDailyStatsForAttraction(parkId, attraction.id)}
                   prediction={getPredictionForAttraction(parkId, attraction.id)}
                   parkId={parkId}
+                  hasActiveAlert={activeParkAlerts.some(
+                    (alert) =>
+                      alert.attractionId === attraction.id
+                      || alert.attractionName.localeCompare(attraction.name, 'pt-BR', {
+                        sensitivity: 'base',
+                      }) === 0,
+                  )}
+                  onCreateAlert={() => setAlertAttraction(attraction)}
                 />
               )
             })}
@@ -310,6 +350,23 @@ export function ParkPage({ parkId, onBack, onOpenAnalytics }: ParkPageProps) {
           Atualização automática a cada 60 segundos
         </p>
       </section>
+      {alertAttraction && data && (
+        <AlertModal
+          attraction={alertAttraction}
+          parkName={data.park.name}
+          onClose={() => setAlertAttraction(null)}
+          onCreate={(type: QueueAlertType, targetWaitTime?: number) => {
+            createQueueAlert({
+              parkId,
+              parkName: data.park.name,
+              attraction: alertAttraction,
+              type,
+              targetWaitTime,
+            })
+            setAlertAttraction(null)
+          }}
+        />
+      )}
     </main>
   )
 }

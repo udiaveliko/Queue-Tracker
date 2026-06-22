@@ -69,3 +69,27 @@ export const ChartIcon = (props: IconProps) => (
     <path d="M2 19h20" />
   </Icon>
 )
+
+export const BellIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+    <path d="M10 21h4" />
+  </Icon>
+)
+
+export const BellFilledIcon = (props: IconProps) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden="true"
+    {...props}
+  >
+    <path d="M12 2a6.2 6.2 0 0 0-6.2 6.2v2.3c0 2.3-.8 3.7-2.3 5.3A1.3 1.3 0 0 0 4.4 18h15.2a1.3 1.3 0 0 0 .9-2.2c-1.5-1.6-2.3-3-2.3-5.3V8.2A6.2 6.2 0 0 0 12 2Zm-2.3 18a2.5 2.5 0 0 0 4.6 0H9.7Z" />
+  </svg>
+)
+
+export const CloseIcon = (props: IconProps) => (
+  <Icon {...props}><path d="m6 6 12 12M18 6 6 18" /></Icon>
+)
