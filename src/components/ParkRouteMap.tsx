@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { parkVectorMaps } from '../data/parkVectorMaps'
+import { getCardinalDirection } from '../utils/routeMapDirections'
 import type {
   AttractionLocation,
   PlannedRoute,
@@ -48,6 +49,11 @@ const createRouteSegment = (from: AttractionLocation, to: AttractionLocation) =>
   return `M${from.x} ${from.y} Q${bendX} ${bendY} ${to.x} ${to.y}`
 }
 
+const formatDistance = (distance: number) =>
+  distance >= 1000
+    ? `${(distance / 1000).toFixed(1).replace('.', ',')} km`
+    : `${distance} m`
+
 export function ParkRouteMap({
   parkId,
   parkName,
@@ -57,6 +63,7 @@ export function ParkRouteMap({
 }: ParkRouteMapProps) {
   const [detail, setDetail] = useState<MapDetail>('detailed')
   const [isRouteCentered, setIsRouteCentered] = useState(false)
+  const [focusedLeg, setFocusedLeg] = useState<number | null>(null)
   const map = parkVectorMaps[parkId]
   const points = useMemo(
     () => [startPoint, ...route.stops.map((stop) => stop.location)],
@@ -64,7 +71,24 @@ export function ParkRouteMap({
   )
   const markerId = `route-arrow-${parkId}`
   const clipId = `park-outline-${parkId}`
-  const viewBox = isRouteCentered ? getFocusedViewBox(points) : '0 0 100 100'
+  const focusedPoints = focusedLeg === null
+    ? points
+    : points.slice(focusedLeg, focusedLeg + 2)
+  const viewBox = isRouteCentered || focusedLeg !== null
+    ? getFocusedViewBox(focusedPoints)
+    : '0 0 100 100'
+  const routeLegs = route.stops.map((stop, index) => {
+    const from = points[index]
+    return {
+      index,
+      from,
+      fromLabel: index === 0 ? startPoint.label : route.stops[index - 1].name,
+      stop,
+      direction: getCardinalDirection(from, stop.location),
+      walkingMinutes: Math.max(1, Math.round(stop.distanceFromPrevious / 75)),
+    }
+  })
+  const activeLeg = focusedLeg === null ? routeLegs[0] : routeLegs[focusedLeg]
   const legend = [
     `Início: ${startPoint.label}`,
     ...route.stops.map((stop) => `${stop.order}. ${stop.name}`),
@@ -72,6 +96,7 @@ export function ParkRouteMap({
 
   useEffect(() => {
     setIsRouteCentered(false)
+    setFocusedLeg(null)
   }, [parkId, route.stops.length, startPoint.x, startPoint.y])
 
   if (!map) return null
@@ -85,15 +110,19 @@ export function ParkRouteMap({
         <div>
           <span className="section-kicker">Mapa vetorial da rota</span>
           <h2>{parkName}</h2>
+          <p>Os números mostram a sequência. Toque em um trecho para aproximar.</p>
         </div>
         <div className="route-map-actions">
           <button
             type="button"
             className={isRouteCentered ? 'is-active' : ''}
             aria-pressed={isRouteCentered}
-            onClick={() => setIsRouteCentered((current) => !current)}
+            onClick={() => {
+              setFocusedLeg(null)
+              setIsRouteCentered((current) => !current)
+            }}
           >
-            {isRouteCentered ? 'Ver parque inteiro' : 'Centralizar rota'}
+            {isRouteCentered || focusedLeg !== null ? 'Ver parque inteiro' : 'Centralizar rota'}
           </button>
           <div role="group" aria-label="Nível de detalhe do mapa">
             <button
@@ -115,6 +144,24 @@ export function ParkRouteMap({
           </div>
         </div>
       </div>
+
+      {activeLeg && (
+        <div className="route-map-next-step" aria-live="polite">
+          <span className="route-map-next-number">{activeLeg.stop.order}</span>
+          <div>
+            <small>Próximo destino</small>
+            <strong>{activeLeg.stop.name}</strong>
+            <p>
+              Siga para <b>{activeLeg.direction}</b>, em direção a{' '}
+              <b>{activeLeg.stop.land}</b>.
+            </p>
+          </div>
+          <div className="route-map-next-distance">
+            <strong>{formatDistance(activeLeg.stop.distanceFromPrevious)}</strong>
+            <span>≈ {activeLeg.walkingMinutes} min a pé</span>
+          </div>
+        </div>
+      )}
 
       <div className="park-route-map-canvas">
         <svg
@@ -182,7 +229,7 @@ export function ParkRouteMap({
               <path
                 key={`${point.attractionId}-${nextPoint.attractionId}-${index}`}
                 d={createRouteSegment(point, nextPoint)}
-                className="route-map-path"
+                className={`route-map-path ${focusedLeg === index ? 'is-active' : ''} ${focusedLeg !== null && focusedLeg !== index ? 'is-muted' : ''}`}
                 markerEnd={`url(#${markerId})`}
               />
             )
@@ -208,8 +255,10 @@ export function ParkRouteMap({
                 className={`route-map-stop ${stop.location.estimatedLocation ? 'is-estimated' : ''}`}
               />
               <text textAnchor="middle" y="1.35" className="route-map-stop-number">{stop.order}</text>
-              <text x="5.2" y="-1.8" className="route-map-label">{shortLabel(stop.name)}</text>
-              {detail === 'detailed' && (
+              {(stop.order === 1 || focusedLeg === stop.order - 1) && (
+                <text x="5.2" y="-1.8" className="route-map-label">{shortLabel(stop.name)}</text>
+              )}
+              {detail === 'detailed' && focusedLeg === stop.order - 1 && (
                 <>
                   <text x="5.2" y="1.8" className="route-map-land-label">{stop.land}</text>
                   {stop.location.estimatedLocation && (
@@ -234,6 +283,41 @@ export function ParkRouteMap({
         <span><i className="key-stop" /> Atração</span>
         <span><i className="key-estimated" /> Posição estimada</span>
       </div>
+
+      {routeLegs.length > 0 && (
+        <div className="route-directions" aria-label="Instruções da rota">
+          <div className="route-directions-heading">
+            <strong>Como seguir</strong>
+            <span>{routeLegs.length} trechos</span>
+          </div>
+          <ol>
+            {routeLegs.map((leg) => (
+              <li key={leg.stop.id}>
+                <button
+                  type="button"
+                  className={focusedLeg === leg.index ? 'is-active' : ''}
+                  aria-pressed={focusedLeg === leg.index}
+                  onClick={() => {
+                    setFocusedLeg((current) => current === leg.index ? null : leg.index)
+                    setIsRouteCentered(false)
+                  }}
+                >
+                  <span className="route-direction-order">{leg.stop.order}</span>
+                  <span className="route-direction-copy">
+                    <small>{leg.fromLabel} → {leg.stop.land}</small>
+                    <strong>{leg.stop.name}</strong>
+                    <em>Siga para {leg.direction}</em>
+                  </span>
+                  <span className="route-direction-distance">
+                    <strong>{formatDistance(leg.stop.distanceFromPrevious)}</strong>
+                    <small>≈ {leg.walkingMinutes} min</small>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       <figcaption>{legend}</figcaption>
     </figure>

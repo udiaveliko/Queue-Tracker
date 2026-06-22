@@ -2208,6 +2208,12 @@ body {
   letter-spacing: -.04em;
 }
 
+.park-route-map-heading p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+
 .park-route-map-heading > span {
   color: var(--text-secondary);
   font-size: 8px;
@@ -2341,6 +2347,17 @@ body {
   stroke-linejoin: round;
   opacity: .82;
   filter: drop-shadow(0 0 1.5px color-mix(in srgb, var(--park-accent) 45%, transparent));
+  transition: opacity .2s ease, stroke-width .2s ease;
+}
+
+.route-map-path.is-active {
+  stroke-width: 2.4;
+  opacity: 1;
+  filter: drop-shadow(0 0 3px var(--park-accent));
+}
+
+.route-map-path.is-muted {
+  opacity: .14;
 }
 
 .route-map-arrow {
@@ -2487,6 +2504,196 @@ body {
 .route-map-key .key-estimated {
   border: 1px dashed var(--warning);
   background: transparent;
+}
+
+.route-map-next-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--park-accent) 30%, var(--border));
+  border-radius: 16px;
+  background:
+    linear-gradient(110deg, color-mix(in srgb, var(--park-accent) 12%, transparent), transparent 60%),
+    var(--card);
+}
+
+.route-map-next-number {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+  background: var(--park-accent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--park-accent) 11%, transparent);
+}
+
+.route-map-next-step small,
+.route-map-next-step strong,
+.route-map-next-step p,
+.route-map-next-distance span {
+  display: block;
+}
+
+.route-map-next-step small {
+  color: var(--text-secondary);
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.route-map-next-step > div > strong {
+  margin-top: 3px;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.route-map-next-step p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+
+.route-map-next-step p b {
+  color: var(--text-primary);
+}
+
+.route-map-next-distance {
+  text-align: right;
+}
+
+.route-map-next-distance strong {
+  color: var(--park-accent);
+  font-size: 14px;
+}
+
+.route-map-next-distance span {
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 7px;
+}
+
+.route-directions {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card) 72%, transparent);
+}
+
+.route-directions-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.route-directions-heading strong {
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+.route-directions-heading span {
+  color: var(--text-secondary);
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.route-directions ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.route-directions button {
+  width: 100%;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 9px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: inherit;
+  text-align: left;
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+  cursor: pointer;
+}
+
+.route-directions button.is-active {
+  border-color: color-mix(in srgb, var(--park-accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--park-accent) 9%, var(--card));
+}
+
+.route-direction-order {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  background: var(--park-accent);
+}
+
+.route-direction-copy {
+  min-width: 0;
+}
+
+.route-direction-copy small,
+.route-direction-copy strong,
+.route-direction-copy em,
+.route-direction-distance strong,
+.route-direction-distance small {
+  display: block;
+}
+
+.route-direction-copy small {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-direction-copy strong {
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-direction-copy em {
+  margin-top: 3px;
+  color: color-mix(in srgb, var(--park-accent) 70%, var(--text-secondary));
+  font-size: 7px;
+  font-style: normal;
+}
+
+.route-direction-distance {
+  text-align: right;
+}
+
+.route-direction-distance strong {
+  color: var(--text-primary);
+  font-size: 10px;
+}
+
+.route-direction-distance small {
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 7px;
 }
 
 .park-route-map figcaption {
@@ -3034,6 +3241,18 @@ body {
 
   .route-map-actions > button {
     flex: 1;
+  }
+
+  .route-map-next-step {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .route-map-next-distance {
+    grid-column: 2;
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    text-align: left;
   }
 
   .park-route-map svg {
