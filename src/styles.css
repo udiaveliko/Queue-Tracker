@@ -32,6 +32,7 @@
   --accent-green: #55d98b;
   --accent-orange: #ffad5c;
   --accent-pink: #ff78a8;
+  --card-shadow: 0 18px 45px rgba(0, 0, 0, .2);
 }
 
 .theme-dark {
@@ -56,15 +57,16 @@
   --accent-green: #55d98b;
   --accent-orange: #ffad5c;
   --accent-pink: #ff78a8;
+  --card-shadow: 0 18px 45px rgba(0, 0, 0, .2);
 }
 
 .theme-light {
   --background: #eef2f7;
-  --surface: #f7f9fc;
-  --card: #fcfdff;
-  --border: rgba(42, 55, 78, .17);
-  --text-primary: #172033;
-  --text-secondary: #4f5b6e;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --border: rgba(15, 23, 42, .14);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
   --accent: #096fd2;
   --success: #19733a;
   --warning: #8a5b00;
@@ -73,13 +75,14 @@
   --shadow-color: rgba(39, 55, 82, .13);
   --bg-gradient-start: #f7f3ed;
   --bg-gradient-end: #eaf1f8;
-  --surface-elevated: #ffffff;
-  --text-muted: #59667a;
+  --surface-elevated: #f8fafc;
+  --text-muted: #64748b;
   --accent-blue: #096fd2;
   --accent-purple: #6f57d9;
   --accent-green: #197c46;
   --accent-orange: #ad5a08;
   --accent-pink: #bf3f72;
+  --card-shadow: 0 18px 45px rgba(15, 23, 42, .10);
   --bg: var(--background);
   --surface-raised: var(--card);
   --muted: var(--text-secondary);
@@ -7086,4 +7089,262 @@ select:disabled {
 .theme-light button:hover:not(:disabled),
 .theme-light a:hover {
   filter: saturate(1.06) brightness(.985);
+}
+
+/* Light mode: definitive contrast layer */
+.theme-light {
+  color: var(--text-primary);
+  color-scheme: light;
+}
+
+.theme-light :is(
+  .hero h1,
+  .planner-hero h1,
+  .db-hero h1,
+  .collector-status-hero h1,
+  .analytics-hero h1,
+  .accuracy-hero h1,
+  .park-nav-title strong,
+  .section-heading h2,
+  .planner-section-heading h2,
+  .route-mode-heading h2,
+  .planned-route-header h2,
+  .db-section-heading h2,
+  .collector-card-heading h2,
+  .data-quality-heading h2,
+  .db-empty h2,
+  .planner-empty h3
+) {
+  color: var(--text-primary);
+  text-shadow: none;
+  opacity: 1;
+}
+
+.theme-light .hero h1 span,
+.theme-light .planner-hero h1 span {
+  color: var(--accent-purple);
+  background: linear-gradient(90deg, #096fd2, #6f57d9, #b83270);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+}
+
+.theme-light :is(
+  .hero > p,
+  .planner-hero > p,
+  .db-hero > p,
+  .collector-status-hero > p,
+  .analytics-hero > p,
+  .accuracy-hero > p,
+  .park-nav-title span,
+  .collector-status-link small,
+  .collector-main-status > small,
+  .collector-time-grid span,
+  .collector-metrics-grid span,
+  .data-quality-metrics span,
+  .db-summary-grid span,
+  .db-insights span,
+  .db-insights small,
+  .db-ranking-empty,
+  .db-inline-empty,
+  .collector-auto-refresh,
+  .planner-warning,
+  .distance-disclaimer
+) {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+.theme-light :is(
+  .db-summary-grid strong,
+  .collector-time-grid strong,
+  .collector-metrics-grid strong,
+  .data-quality-metrics strong,
+  .data-quality-heading > strong,
+  .collector-card-heading > strong,
+  .db-insights strong,
+  .route-total strong,
+  .route-summary-grid strong,
+  .metric-number
+) {
+  color: var(--text-primary);
+  opacity: 1;
+  text-shadow: none;
+}
+
+.theme-light :is(
+  .db-summary-grid > div,
+  .collector-time-grid > div,
+  .collector-main-status,
+  .collector-summary-card,
+  .data-quality-summary,
+  .db-insights > div,
+  .db-park-section,
+  .db-hour-card,
+  .db-ranking-card,
+  .db-attraction-detail,
+  .planned-route-panel,
+  .planner-option,
+  .route-stop,
+  .park-location-state
+) {
+  border-color: var(--border);
+  background-color: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+
+.theme-light .collector-main-status {
+  background:
+    radial-gradient(circle at 100% 0, rgba(25, 124, 70, .09), transparent 13rem),
+    var(--surface);
+}
+
+.theme-light .collector-main-status > div {
+  border: 1px solid rgba(71, 85, 105, .16);
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+}
+
+.theme-light .collector-main-status.is-enabled > div {
+  border-color: rgba(25, 115, 58, .24);
+  color: #11652f;
+  background: rgba(25, 115, 58, .10);
+}
+
+.theme-light .collector-main-status > strong {
+  color: var(--text-primary);
+}
+
+.theme-light .collector-header-status {
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: 0 5px 16px rgba(15, 23, 42, .08);
+}
+
+.theme-light .collector-status-link {
+  border: 1px solid rgba(9, 111, 210, .24);
+  color: var(--text-primary);
+  background:
+    linear-gradient(135deg, rgba(9, 111, 210, .08), rgba(111, 87, 217, .05)),
+    var(--surface);
+  box-shadow: var(--card-shadow);
+}
+
+.theme-light .collector-status-link > span:first-child {
+  color: #075da8;
+  background: rgba(9, 111, 210, .11);
+}
+
+.theme-light .collector-status-link strong {
+  color: var(--text-primary);
+}
+
+.theme-light .collector-status-link em {
+  color: #075da8;
+}
+
+.theme-light :is(
+  .planner-park-select,
+  .search-field,
+  .sort-control,
+  .segmented-control,
+  .route-start-controls label,
+  .route-mode-control,
+  .db-section-heading select
+) {
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  background: var(--surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .9),
+    0 8px 24px rgba(15, 23, 42, .08);
+}
+
+.theme-light :is(
+  .planner-park-select > span,
+  .route-start-controls label > span,
+  .sort-control > span
+) {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+.theme-light :is(
+  .planner-park-select select,
+  .route-start-controls select,
+  .sort-control select,
+  .search-field input,
+  .db-section-heading select
+) {
+  color: var(--text-primary);
+  background-color: transparent;
+  opacity: 1;
+}
+
+.theme-light :is(
+  .route-mode-control button,
+  .segmented-control button,
+  .osm-map-heading-actions button,
+  .osm-map-heading-actions a,
+  .icon-button
+) {
+  border-color: var(--border);
+  color: var(--text-primary);
+  background: var(--surface-elevated);
+}
+
+.theme-light .route-mode-control button span {
+  color: var(--text-secondary);
+}
+
+.theme-light .route-mode-control button.is-active,
+.theme-light .segmented-control button.is-active {
+  border-color: rgba(9, 111, 210, .28);
+  color: var(--text-primary);
+  background: rgba(9, 111, 210, .10);
+}
+
+.theme-light :is(
+  .status,
+  .trend,
+  .rank,
+  .park-location-badge,
+  .osm-park-status
+) {
+  border-color: var(--border);
+  color: var(--text-secondary);
+  background: var(--surface-elevated);
+  opacity: 1;
+}
+
+.theme-light :is(.status-open, .park-location-state.is-inside .park-location-badge, .osm-park-status.is-inside) {
+  border-color: rgba(25, 115, 58, .26);
+  color: #11652f;
+  background: rgba(25, 115, 58, .10);
+}
+
+.theme-light :is(.status-unavailable, .park-location-state.is-near .park-location-badge, .osm-park-status.is-near) {
+  border-color: rgba(138, 91, 0, .25);
+  color: #785000;
+  background: rgba(217, 154, 0, .12);
+}
+
+.theme-light :is(.status-closed, .park-location-state.is-outside .park-location-badge, .osm-park-status.is-outside) {
+  border-color: rgba(71, 85, 105, .22);
+  color: #475569;
+  background: #eef2f7;
+}
+
+.theme-light .primary-button {
+  color: #ffffff;
+  background: #096fd2;
+}
+
+.theme-light button:disabled,
+.theme-light input:disabled,
+.theme-light select:disabled {
+  color: #64748b;
+  background-color: #e2e8f0;
+  opacity: .78;
 }
