@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'oqt-static-v1'
+const CACHE_VERSION = 'oqt-static-v2'
 const APP_SHELL = [
   '/',
   '/offline.html',
@@ -20,6 +20,13 @@ const isApiRequest = (url) =>
   API_PREFIXES.some((prefix) =>
     url.pathname === prefix || url.pathname.startsWith(`${prefix}/`),
   )
+
+const isExternalMapRequest = (url) =>
+  url.hostname.endsWith('tile.openstreetmap.org')
+  || url.hostname.includes('openstreetmap.org')
+  || url.hostname.includes('project-osrm.org')
+  || url.hostname.includes('routing.openstreetmap.de')
+  || /\/(?:tiles?|route)\//i.test(url.pathname)
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -51,6 +58,7 @@ self.addEventListener('fetch', (event) => {
 
   if (
     request.method !== 'GET'
+    || isExternalMapRequest(url)
     || url.origin !== self.location.origin
     || isApiRequest(url)
   ) {

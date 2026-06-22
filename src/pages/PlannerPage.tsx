@@ -23,6 +23,8 @@ import type {
 } from '../types'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { ParkRouteMap } from '../components/ParkRouteMap'
+import { OSMParkRouteMap } from '../components/OSMParkRouteMap'
+import { hasEnoughOSMCoordinates } from '../data/attractionGeoLocations'
 import { parkEntrances } from '../data/parkEntrances'
 import { getParkLandOptions, PARK_CENTER } from '../data/parkLandCenters'
 
@@ -312,13 +314,23 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
           </div>
         </section>
 
-        <ParkRouteMap
-          parkId={parkId}
-          parkName={selectedPark?.name ?? data?.park.name ?? 'Parque'}
-          accent={selectedPark?.accent ?? '#0a84ff'}
-          route={route}
-          startPoint={startPoint}
-        />
+        {hasEnoughOSMCoordinates(parkId, route, startPoint) ? (
+          <OSMParkRouteMap
+            parkId={parkId}
+            parkName={selectedPark?.name ?? data?.park.name ?? 'Parque'}
+            accent={selectedPark?.accent ?? '#0a84ff'}
+            route={route}
+            startPoint={startPoint}
+          />
+        ) : (
+          <ParkRouteMap
+            parkId={parkId}
+            parkName={selectedPark?.name ?? data?.park.name ?? 'Parque'}
+            accent={selectedPark?.accent ?? '#0a84ff'}
+            route={route}
+            startPoint={startPoint}
+          />
+        )}
 
         <div className="planner-layout">
           <div className="planner-attractions-panel">
