@@ -27,11 +27,13 @@ import { OSMParkRouteMap } from '../components/OSMParkRouteMap'
 import {
   geoLocationToRelative,
   hasEnoughOSMCoordinates,
-  parkGeoConfigs,
 } from '../data/attractionGeoLocations'
-import { calculateGeoDistance } from '../services/osmRouting'
 import { parkEntrances } from '../data/parkEntrances'
 import { getParkLandOptions, PARK_CENTER } from '../data/parkLandCenters'
+import {
+  getParkLocationStatus,
+  type ParkLocationStatus,
+} from '../data/parkBoundaries'
 
 interface PlannerPageProps {
   onBack: () => void
@@ -74,6 +76,12 @@ const routeSummaryLabel: Record<RoutePlannerMode, string> = {
   'shortest-wait': 'Rota otimizada para menor fila',
   'shortest-walk': 'Rota otimizada para menor caminhada',
   balanced: 'Rota balanceada entre fila e distância',
+}
+
+const parkLocationLabels: Record<ParkLocationStatus, string> = {
+  inside: 'Dentro do parque',
+  near: 'Próximo ao parque',
+  outside: 'Fora do parque',
 }
 
 interface GPSLocation {
@@ -151,6 +159,18 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
   const landOptions = useMemo(() => getParkLandOptions(parkId), [parkId])
   const selectedPark = parks.find((park) => park.id === parkId)
 
+  const entranceStartPoint = useMemo<RouteStartPoint>(() => {
+    const entrance = parkEntrances[parkId] ?? { x: 50, y: 94 }
+    return {
+      parkId,
+      attractionId: 'start-entrance',
+      ...entrance,
+      land: 'Entrada',
+      estimatedLocation: true,
+      label: 'Entrada do parque',
+    }
+  }, [parkId])
+
   const startPoint = useMemo<RouteStartPoint>(() => {
     if (startMode === 'gps' && gpsLocation) {
       const relative = geoLocationToRelative(parkId, {
@@ -205,31 +225,30 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
       }
     }
 
-    const entrance = parkEntrances[parkId] ?? { x: 50, y: 94 }
-    return {
-      parkId,
-      attractionId: 'start-entrance',
-      ...entrance,
-      land: 'Entrada',
-      estimatedLocation: true,
-      label: 'Entrada do parque',
-    }
-  }, [gpsLocation, landOptions, parkId, selectedAttractions, startMode, startReference])
+    return entranceStartPoint
+  }, [
+    entranceStartPoint,
+    gpsLocation,
+    landOptions,
+    parkId,
+    selectedAttractions,
+    startMode,
+    startReference,
+  ])
 
-  const isOutsidePark = useMemo(() => {
-    if (!gpsLocation) return false
-    const config = parkGeoConfigs[parkId]
-    if (!config) return false
+  const parkLocationStatus = useMemo<ParkLocationStatus | null>(() => {
+    if (startMode !== 'gps' || !gpsLocation) return null
+    return getParkLocationStatus(parkId, gpsLocation)
+  }, [gpsLocation, parkId, startMode])
 
-    return calculateGeoDistance(
-      { lat: gpsLocation.latitude, lng: gpsLocation.longitude },
-      config,
-    ) > 3_000
-  }, [gpsLocation, parkId])
+  const internalRouteStartPoint =
+    startMode === 'gps' && parkLocationStatus !== 'inside'
+      ? entranceStartPoint
+      : startPoint
 
   const route = useMemo(
-    () => planAttractionRoute(selectedAttractions, routeMode, startPoint),
-    [routeMode, selectedAttractions, startPoint],
+    () => planAttractionRoute(selectedAttractions, routeMode, internalRouteStartPoint),
+    [internalRouteStartPoint, routeMode, selectedAttractions],
   )
 
   const toggleAttraction = (attractionId: string) => {
@@ -284,6 +303,36 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
       },
     )
   }
+
+  useEffect(() => {
+    if (
+      startMode !== 'gps'
+      || !('geolocation' in navigator)
+    ) {
+      return
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setGpsLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        })
+        setGpsStatus('success')
+      },
+      () => {
+        // Mantém a última posição válida caso uma atualização pontual falhe.
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 30_000,
+        maximumAge: 15_000,
+      },
+    )
+
+    return () => navigator.geolocation.clearWatch(watchId)
+  }, [startMode])
 
   return (
     <main className="planner-page">
@@ -427,10 +476,27 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
               {gpsMessage}
             </p>
           )}
-          {startMode === 'gps' && isOutsidePark && (
-            <p className="gps-outside-warning" role="status">
-              Você parece estar fora do parque. A rota ainda será estimada.
-            </p>
+          {parkLocationStatus && (
+            <div
+              className={`park-location-state is-${parkLocationStatus}`}
+              role="status"
+            >
+              <span className="park-location-badge">
+                <i aria-hidden="true" />
+                {parkLocationLabels[parkLocationStatus]}
+              </span>
+              {parkLocationStatus === 'near' && (
+                <p>
+                  Você ainda não entrou no parque. Siga primeiro até a entrada principal.
+                </p>
+              )}
+              {parkLocationStatus === 'outside' && (
+                <p>Entre no parque para ativar a navegação interna.</p>
+              )}
+              {parkLocationStatus === 'inside' && (
+                <p>Navegação interna ativa. A rota será atualizada conforme sua posição.</p>
+              )}
+            </div>
           )}
         </section>
 
@@ -441,6 +507,7 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
             accent={selectedPark?.accent ?? '#0a84ff'}
             route={route}
             startPoint={startPoint}
+            navigationStatus={parkLocationStatus}
           />
         ) : (
           <ParkRouteMap
@@ -448,7 +515,7 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
             parkName={selectedPark?.name ?? data?.park.name ?? 'Parque'}
             accent={selectedPark?.accent ?? '#0a84ff'}
             route={route}
-            startPoint={startPoint}
+            startPoint={internalRouteStartPoint}
           />
         )}
 

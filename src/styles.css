@@ -2274,6 +2274,76 @@ body {
   border-color: color-mix(in srgb, var(--success) 25%, var(--border));
 }
 
+.park-location-state {
+  margin-top: 10px;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--surface-elevated) 76%, transparent);
+}
+
+.park-location-state p {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.park-location-badge,
+.osm-park-status {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-primary);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .025em;
+  background: var(--card);
+}
+
+.park-location-badge i,
+.osm-park-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.park-location-state.is-inside,
+.osm-park-status.is-inside {
+  border-color: color-mix(in srgb, var(--success) 30%, var(--border));
+}
+
+.park-location-state.is-inside .park-location-badge,
+.osm-park-status.is-inside {
+  color: var(--success);
+}
+
+.park-location-state.is-near,
+.osm-park-status.is-near {
+  border-color: color-mix(in srgb, var(--warning) 32%, var(--border));
+}
+
+.park-location-state.is-near .park-location-badge,
+.osm-park-status.is-near {
+  color: var(--warning);
+}
+
+.park-location-state.is-outside,
+.osm-park-status.is-outside {
+  border-color: color-mix(in srgb, var(--accent-orange) 34%, var(--border));
+}
+
+.park-location-state.is-outside .park-location-badge,
+.osm-park-status.is-outside {
+  color: var(--accent-orange);
+}
+
 .park-route-map {
   --park-accent: var(--accent);
   margin: 0 0 30px;
@@ -2311,6 +2381,10 @@ body {
   color: var(--text-primary);
   font-size: 20px;
   letter-spacing: -.04em;
+}
+
+.osm-park-status {
+  margin-top: 8px;
 }
 
 .osm-map-heading a {
@@ -2384,6 +2458,24 @@ body {
   color: color-mix(in srgb, var(--warning) 68%, var(--text-primary));
   font-size: 8px;
   line-height: 1.45;
+  background: color-mix(in srgb, var(--warning) 7%, var(--card));
+}
+
+.osm-external-navigation-note {
+  margin: 10px 0 0;
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--accent-orange) 30%, var(--border));
+  border-radius: 11px;
+  color: color-mix(in srgb, var(--accent-orange) 72%, var(--text-primary));
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.45;
+  background: color-mix(in srgb, var(--accent-orange) 8%, var(--card));
+}
+
+.osm-external-navigation-note.is-near {
+  border-color: color-mix(in srgb, var(--warning) 28%, var(--border));
+  color: color-mix(in srgb, var(--warning) 70%, var(--text-primary));
   background: color-mix(in srgb, var(--warning) 7%, var(--card));
 }
 
@@ -2524,6 +2616,37 @@ body {
   border-radius: 50%;
   background: var(--pin-accent);
   box-shadow: 0 0 0 1px var(--pin-accent);
+}
+
+.osm-park-entrance-pin {
+  --pin-accent: #0a84ff;
+  min-width: 68px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 2px solid white;
+  border-radius: 12px;
+  color: white;
+  background: color-mix(in srgb, var(--pin-accent) 76%, #172033);
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--pin-accent) 16%, transparent),
+    0 6px 18px rgba(0, 0, 0, .32);
+}
+
+.osm-park-entrance-pin i {
+  width: 8px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+}
+
+.osm-park-entrance-pin b {
+  color: white;
+  font: 800 9px/1 Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
 .osm-map-summary {

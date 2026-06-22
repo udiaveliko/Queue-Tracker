@@ -16,6 +16,8 @@ import {
   relativeLocationToGeo,
   type GeoCoordinate,
 } from '../data/attractionGeoLocations'
+import { parkEntrances } from '../data/parkEntrances'
+import type { ParkLocationStatus } from '../data/parkBoundaries'
 import { PARK_CENTER, parkLandCenters } from '../data/parkLandCenters'
 import {
   calculateGeoDistance,
@@ -34,6 +36,7 @@ interface OSMParkRouteMapProps {
   accent: string
   route: PlannedRoute
   startPoint: RouteStartPoint
+  navigationStatus: ParkLocationStatus | null
 }
 
 interface FitMapProps {
@@ -97,6 +100,14 @@ const createUserIcon = (accent: string) =>
     html: `<span class="osm-user-location-pin" style="--pin-accent:${accent}"><i></i></span>`,
     iconSize: [38, 38],
     iconAnchor: [19, 19],
+  })
+
+const createEntranceIcon = (accent: string) =>
+  divIcon({
+    className: 'osm-route-div-icon',
+    html: `<span class="osm-park-entrance-pin" style="--pin-accent:${accent}"><i></i><b>Entrada</b></span>`,
+    iconSize: [74, 42],
+    iconAnchor: [37, 21],
   })
 
 const getBearing = (
@@ -165,8 +176,13 @@ export function OSMParkRouteMap({
   accent,
   route,
   startPoint,
+  navigationStatus,
 }: OSMParkRouteMapProps) {
   const config = parkGeoConfigs[parkId]
+  const isExternalNavigation =
+    startPoint.isUserLocation === true
+    && navigationStatus !== null
+    && navigationStatus !== 'inside'
   const startGeo = useMemo(
     () => getStartPointGeoLocation(parkId, startPoint),
     [parkId, startPoint],
@@ -182,22 +198,41 @@ export function OSMParkRouteMap({
     }),
     [parkId, route.stops],
   )
+  const entranceGeo = useMemo(() => {
+    const entrance = parkEntrances[parkId]
+    return entrance ? relativeLocationToGeo(parkId, entrance) : null
+  }, [parkId])
+  const visibleStopLocations = useMemo(
+    () => isExternalNavigation ? stopLocations.slice(0, 1) : stopLocations,
+    [isExternalNavigation, stopLocations],
+  )
   const namedPoints = useMemo<NamedGeoCoordinate[]>(
-    () => startGeo
-      ? [
-          { ...startGeo, name: startPoint.label },
-          ...stopLocations.map(({ stop, geo }) => ({
+    () => {
+      if (!startGeo) return []
+
+      if (isExternalNavigation && entranceGeo) {
+        return [
+          { ...startGeo, name: 'Você está aqui' },
+          { ...entranceGeo, name: 'Entrada principal' },
+        ]
+      }
+
+      return [
+        { ...startGeo, name: startPoint.label },
+        ...stopLocations.map(({ stop, geo }) => ({
             lat: geo.lat,
             lng: geo.lng,
             name: stop.name,
           })),
-        ]
-      : [],
-    [startGeo, startPoint.label, stopLocations],
+      ]
+    },
+    [entranceGeo, isExternalNavigation, startGeo, startPoint.label, stopLocations],
   )
   const fallbackLegs = useMemo(
     () => {
-      const options = createInternalPathOptions(parkId, namedPoints, route, startPoint)
+      const options: WalkingRouteLegOptions[] = isExternalNavigation
+        ? namedPoints.slice(0, -1).map(() => ({}))
+        : createInternalPathOptions(parkId, namedPoints, route, startPoint)
       return namedPoints.slice(0, -1).map((point, index) => {
         const to = namedPoints[index + 1]
         const internalCoordinates = options[index]?.internalCoordinates
@@ -206,11 +241,13 @@ export function OSMParkRouteMap({
           : createDirectFallbackLeg(point, to)
       })
     },
-    [namedPoints, parkId, route, startPoint],
+    [isExternalNavigation, namedPoints, parkId, route, startPoint],
   )
-  const walkingOptions = useMemo(
-    () => createInternalPathOptions(parkId, namedPoints, route, startPoint),
-    [namedPoints, parkId, route, startPoint],
+  const walkingOptions = useMemo<WalkingRouteLegOptions[]>(
+    () => isExternalNavigation
+      ? namedPoints.slice(0, -1).map(() => ({}))
+      : createInternalPathOptions(parkId, namedPoints, route, startPoint),
+    [isExternalNavigation, namedPoints, parkId, route, startPoint],
   )
   const [routeLegs, setRouteLegs] = useState<OSMRouteLeg[]>(fallbackLegs)
   const [selectedLegIndex, setSelectedLegIndex] = useState<number | null>(null)
@@ -262,6 +299,16 @@ export function OSMParkRouteMap({
         <div>
           <span className="section-kicker">Mapa real da rota</span>
           <h2>{parkName}</h2>
+          {navigationStatus && (
+            <span className={`osm-park-status is-${navigationStatus}`}>
+              <i aria-hidden="true" />
+              {navigationStatus === 'inside'
+                ? 'Dentro do parque'
+                : navigationStatus === 'near'
+                  ? 'Próximo ao parque'
+                  : 'Fora do parque'}
+            </span>
+          )}
         </div>
         <div className="osm-map-heading-actions">
           {startPoint.isUserLocation && (
@@ -356,7 +403,18 @@ export function OSMParkRouteMap({
               {startPoint.isUserLocation ? 'Você está aqui' : `Início: ${startPoint.label}`}
             </Tooltip>
           </Marker>
-          {stopLocations.map(({ stop, geo }) => (
+          {isExternalNavigation && entranceGeo && (
+            <Marker
+              position={[entranceGeo.lat, entranceGeo.lng]}
+              icon={createEntranceIcon(accent)}
+              zIndexOffset={800}
+            >
+              <Tooltip direction="top" offset={[0, -14]}>
+                Entrada principal do parque
+              </Tooltip>
+            </Marker>
+          )}
+          {visibleStopLocations.map(({ stop, geo }) => (
             <Marker
               key={stop.id}
               position={[geo.lat, geo.lng]}
@@ -376,6 +434,16 @@ export function OSMParkRouteMap({
         </MapContainer>
       </div>
 
+      {navigationStatus === 'near' && (
+        <p className="osm-external-navigation-note is-near" role="status">
+          Você ainda não entrou no parque. O mapa mostra o caminho até a entrada principal.
+        </p>
+      )}
+      {navigationStatus === 'outside' && (
+        <p className="osm-external-navigation-note is-outside" role="status">
+          Entre no parque para ativar a navegação interna.
+        </p>
+      )}
       {hasDirectFallback && (
         <p className="osm-routing-warning" role="status">
           Caminho caminhável exato indisponível. Mostrando direção aproximada.
@@ -432,7 +500,9 @@ export function OSMParkRouteMap({
         <span><strong>{formatDistance(totalDistance)}</strong> distância estimada</span>
         <span><strong>{formatDuration(totalDuration)}</strong> caminhada estimada</span>
         <span>
-          {hasDirectFallback
+          {isExternalNavigation
+            ? 'Trecho até a entrada principal'
+            : hasDirectFallback
             ? 'Rota parcialmente aproximada'
             : hasInternalPath
               ? 'Rota por caminhos internos'
