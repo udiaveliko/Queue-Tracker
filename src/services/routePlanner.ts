@@ -9,6 +9,8 @@ import type {
   WaitTimePrediction,
 } from '../types'
 import { getPredictionForAttraction } from './predictions'
+import { getAttractionGeoLocation } from '../data/attractionGeoLocations'
+import { calculateGeoDistance } from './osmRouting'
 import {
   calculateMapDistance,
   estimateWalkingDistance,
@@ -117,10 +119,27 @@ const getCandidateScore = (
   const weights = modeWeights[mode]
   const originLocation = 'location' in origin ? origin.location : origin
   const waitScore = Math.min(100, getWaitPriority(candidate))
-  const distanceScore = Math.min(
-    100,
-    calculateMapDistance(originLocation, candidate.location) / Math.SQRT2,
-  )
+  const candidateGeo = 'latitude' in origin
+    && typeof origin.latitude === 'number'
+    && typeof origin.longitude === 'number'
+    ? getAttractionGeoLocation(candidate.location.parkId, {
+        id: candidate.id,
+        name: candidate.name,
+        location: candidate.location,
+      })
+    : null
+  const distanceScore = candidateGeo && 'latitude' in origin
+    ? Math.min(
+        100,
+        calculateGeoDistance(
+          { lat: origin.latitude!, lng: origin.longitude! },
+          candidateGeo,
+        ) / 20,
+      )
+    : Math.min(
+        100,
+        calculateMapDistance(originLocation, candidate.location) / Math.SQRT2,
+      )
   const sameLandBonus = origin.land === candidate.land ? -8 : 0
 
   return waitScore * weights.wait + distanceScore * weights.distance + sameLandBonus
@@ -137,7 +156,25 @@ export function explainRouteDecision(
   const predictionScore = getPredictionScore(attraction)
   const origin = previous ?? startPoint
   const originLocation = origin && 'location' in origin ? origin.location : origin
-  const distanceCost = origin
+  const attractionGeo = !previous
+    && startPoint
+    && typeof startPoint.latitude === 'number'
+    && typeof startPoint.longitude === 'number'
+    ? getAttractionGeoLocation(attraction.location.parkId, {
+        id: attraction.id,
+        name: attraction.name,
+        location: attraction.location,
+      })
+    : null
+  const distanceCost = attractionGeo && startPoint
+    ? Math.min(
+        100,
+        calculateGeoDistance(
+          { lat: startPoint.latitude!, lng: startPoint.longitude! },
+          attractionGeo,
+        ) / 20,
+      )
+    : origin
     ? Math.min(
         100,
         calculateMapDistance(originLocation!, attraction.location) / Math.SQRT2,
@@ -225,12 +262,27 @@ export function planAttractionRoute(
       : attraction.waitTime
     const previous = orderedAttractions[index - 1]
     const originLocation = previous?.location ?? startPoint
+    const attractionGeo = !previous
+      && startPoint
+      && typeof startPoint.latitude === 'number'
+      && typeof startPoint.longitude === 'number'
+      ? getAttractionGeoLocation(attraction.location.parkId, {
+          id: attraction.id,
+          name: attraction.name,
+          location: attraction.location,
+        })
+      : null
 
     return {
       ...attraction,
       order: index + 1,
       estimatedWait,
-      distanceFromPrevious: originLocation
+      distanceFromPrevious: attractionGeo && startPoint
+        ? Math.round(calculateGeoDistance(
+            { lat: startPoint.latitude!, lng: startPoint.longitude! },
+            attractionGeo,
+          ))
+        : originLocation
         ? estimateWalkingDistance(originLocation, attraction.location)
         : 0,
       explanation: explainRouteDecision(attraction, previous, mode, startPoint),

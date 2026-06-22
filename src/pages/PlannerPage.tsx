@@ -24,7 +24,12 @@ import type {
 import { ThemeToggle } from '../components/ThemeToggle'
 import { ParkRouteMap } from '../components/ParkRouteMap'
 import { OSMParkRouteMap } from '../components/OSMParkRouteMap'
-import { hasEnoughOSMCoordinates } from '../data/attractionGeoLocations'
+import {
+  geoLocationToRelative,
+  hasEnoughOSMCoordinates,
+  parkGeoConfigs,
+} from '../data/attractionGeoLocations'
+import { calculateGeoDistance } from '../services/osmRouting'
 import { parkEntrances } from '../data/parkEntrances'
 import { getParkLandOptions, PARK_CENTER } from '../data/parkLandCenters'
 
@@ -71,6 +76,12 @@ const routeSummaryLabel: Record<RoutePlannerMode, string> = {
   balanced: 'Rota balanceada entre fila e distância',
 }
 
+interface GPSLocation {
+  latitude: number
+  longitude: number
+  accuracy: number
+}
+
 export function PlannerPage({ onBack }: PlannerPageProps) {
   const parks = getParks()
   const [parkId, setParkId] = useState(parks[0]?.id ?? '')
@@ -80,6 +91,9 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
   const [routeMode, setRouteMode] = useState<RoutePlannerMode>('balanced')
   const [startMode, setStartMode] = useState<RouteStartMode>('entrance')
   const [startReference, setStartReference] = useState('')
+  const [gpsLocation, setGpsLocation] = useState<GPSLocation | null>(null)
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [gpsMessage, setGpsMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -90,6 +104,9 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
     setSelectedIds(new Set())
     setStartMode('entrance')
     setStartReference('')
+    setGpsLocation(null)
+    setGpsStatus('idle')
+    setGpsMessage(null)
 
     getParkWaitTimes(parkId)
       .then((response) => {
@@ -135,6 +152,24 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
   const selectedPark = parks.find((park) => park.id === parkId)
 
   const startPoint = useMemo<RouteStartPoint>(() => {
+    if (startMode === 'gps' && gpsLocation) {
+      const relative = geoLocationToRelative(parkId, {
+        lat: gpsLocation.latitude,
+        lng: gpsLocation.longitude,
+      }) ?? PARK_CENTER
+
+      return {
+        parkId,
+        attractionId: 'start-gps',
+        ...relative,
+        estimatedLocation: false,
+        label: 'Minha localização atual',
+        latitude: gpsLocation.latitude,
+        longitude: gpsLocation.longitude,
+        isUserLocation: true,
+      }
+    }
+
     if (startMode === 'land') {
       const selectedLand = landOptions.find((land) => land.name === startReference)
         ?? landOptions[0]
@@ -179,7 +214,18 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
       estimatedLocation: true,
       label: 'Entrada do parque',
     }
-  }, [landOptions, parkId, selectedAttractions, startMode, startReference])
+  }, [gpsLocation, landOptions, parkId, selectedAttractions, startMode, startReference])
+
+  const isOutsidePark = useMemo(() => {
+    if (!gpsLocation) return false
+    const config = parkGeoConfigs[parkId]
+    if (!config) return false
+
+    return calculateGeoDistance(
+      { lat: gpsLocation.latitude, lng: gpsLocation.longitude },
+      config,
+    ) > 3_000
+  }, [gpsLocation, parkId])
 
   const route = useMemo(
     () => planAttractionRoute(selectedAttractions, routeMode, startPoint),
@@ -193,6 +239,50 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
       else next.add(attractionId)
       return next
     })
+  }
+
+  const useCurrentLocation = () => {
+    setGpsMessage(null)
+
+    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+      setGpsStatus('error')
+      setGpsMessage('A localização está disponível apenas em conexão segura (HTTPS).')
+      return
+    }
+
+    if (!('geolocation' in navigator)) {
+      setGpsStatus('error')
+      setGpsMessage('Este navegador não oferece suporte à localização.')
+      return
+    }
+
+    setGpsStatus('loading')
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGpsLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        })
+        setStartMode('gps')
+        setGpsStatus('success')
+        setGpsMessage('Localização usada somente nesta tela e não armazenada.')
+      },
+      (locationError) => {
+        const message = locationError.code === locationError.PERMISSION_DENIED
+          ? 'Permissão de localização negada. Você ainda pode escolher entrada, centro, área ou atração.'
+          : locationError.code === locationError.TIMEOUT
+            ? 'A localização demorou demais. Tente novamente ou escolha outro ponto inicial.'
+            : 'Não foi possível obter sua localização. Escolha outro ponto inicial.'
+        setGpsStatus('error')
+        setGpsMessage(message)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12_000,
+        maximumAge: 60_000,
+      },
+    )
   }
 
   return (
@@ -281,6 +371,7 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
                 <option value="attraction" disabled={!selectedAttractions.length}>
                   Atração selecionada
                 </option>
+                {gpsLocation && <option value="gps">Minha localização atual</option>}
               </select>
             </label>
 
@@ -312,6 +403,35 @@ export function PlannerPage({ onBack }: PlannerPageProps) {
               </label>
             )}
           </div>
+          <div className="gps-location-actions">
+            <button
+              type="button"
+              className={startMode === 'gps' ? 'is-active' : ''}
+              onClick={useCurrentLocation}
+              disabled={gpsStatus === 'loading'}
+              aria-label="Usar minha localização atual como ponto inicial"
+            >
+              <span aria-hidden="true">⌖</span>
+              {gpsStatus === 'loading'
+                ? 'Obtendo localização...'
+                : gpsLocation
+                  ? 'Atualizar minha localização'
+                  : 'Usar minha localização'}
+            </button>
+            {gpsLocation && (
+              <small>Precisão informada pelo navegador: cerca de {Math.round(gpsLocation.accuracy)} m.</small>
+            )}
+          </div>
+          {gpsMessage && (
+            <p className={`gps-location-message is-${gpsStatus}`} role={gpsStatus === 'error' ? 'alert' : 'status'}>
+              {gpsMessage}
+            </p>
+          )}
+          {startMode === 'gps' && isOutsidePark && (
+            <p className="gps-outside-warning" role="status">
+              Você parece estar fora do parque. A rota ainda será estimada.
+            </p>
+          )}
         </section>
 
         {hasEnoughOSMCoordinates(parkId, route, startPoint) ? (

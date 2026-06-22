@@ -138,10 +138,13 @@ export interface ResolvedAttractionLocation extends AttractionLocation {
   estimatedLocation: boolean
 }
 
-export type RouteStartMode = 'entrance' | 'center' | 'land' | 'attraction'
+export type RouteStartMode = 'entrance' | 'center' | 'land' | 'attraction' | 'gps'
 
 export interface RouteStartPoint extends ResolvedAttractionLocation {
   label: string
+  latitude?: number
+  longitude?: number
+  isUserLocation?: boolean
 }
 
 export interface RoutePlannerAttraction {

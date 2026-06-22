@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { Fragment, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { divIcon, latLngBounds, type LatLngExpression } from 'leaflet'
 import {
   MapContainer,
@@ -16,9 +16,10 @@ import {
   type GeoCoordinate,
 } from '../data/attractionGeoLocations'
 import {
-  createDirectRoute,
-  getWalkingRoute,
-  type OSMRouteResult,
+  createFallbackLeg,
+  getWalkingRouteLegs,
+  type NamedGeoCoordinate,
+  type OSMRouteLeg,
 } from '../services/osmRouting'
 import type { PlannedRoute, RouteStartPoint } from '../types'
 
@@ -31,20 +32,32 @@ interface OSMParkRouteMapProps {
 }
 
 interface FitMapProps {
-  points: GeoCoordinate[]
+  coordinates: Array<[number, number]>
+  userLocation?: GeoCoordinate
+  centerOnUserRequest: number
+  fitRequest: number
 }
 
-function FitMap({ points }: FitMapProps) {
+function FitMap({
+  coordinates,
+  userLocation,
+  centerOnUserRequest,
+  fitRequest,
+}: FitMapProps) {
   const map = useMap()
 
   useEffect(() => {
-    if (points.length > 1) {
-      map.fitBounds(
-        latLngBounds(points.map((point) => [point.lat, point.lng])),
-        { padding: [28, 28], maxZoom: 18 },
-      )
+    if (centerOnUserRequest > 0 && userLocation) {
+      map.setView([userLocation.lat, userLocation.lng], 18)
+      return
     }
-  }, [map, points])
+    if (coordinates.length > 1) {
+      map.fitBounds(latLngBounds(coordinates), {
+        padding: [32, 32],
+        maxZoom: 19,
+      })
+    }
+  }, [centerOnUserRequest, coordinates, fitRequest, map, userLocation])
 
   return null
 }
@@ -53,6 +66,9 @@ const formatDistance = (distance: number) =>
   distance >= 1000
     ? `${(distance / 1000).toFixed(1).replace('.', ',')} km`
     : `${distance} m`
+
+const formatDuration = (seconds: number) =>
+  `${Math.max(1, Math.round(seconds / 60))} min`
 
 const createNumberedIcon = (number: number, accent: string, highlighted: boolean, estimated: boolean) =>
   divIcon({
@@ -69,6 +85,40 @@ const createStartIcon = (accent: string) =>
     iconSize: [34, 34],
     iconAnchor: [17, 17],
   })
+
+const createUserIcon = (accent: string) =>
+  divIcon({
+    className: 'osm-route-div-icon',
+    html: `<span class="osm-user-location-pin" style="--pin-accent:${accent}"><i></i></span>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 19],
+  })
+
+const getBearing = (
+  from: [number, number],
+  to: [number, number],
+) => Math.atan2(to[1] - from[1], -(to[0] - from[0])) * 180 / Math.PI
+
+const createDirectionIcon = (
+  coordinates: Array<[number, number]>,
+  accent: string,
+  active: boolean,
+) => {
+  const middleIndex = Math.max(0, Math.floor(coordinates.length / 2) - 1)
+  const from = coordinates[middleIndex]
+  const to = coordinates[Math.min(coordinates.length - 1, middleIndex + 1)]
+  const rotation = getBearing(from, to)
+
+  return divIcon({
+    className: 'osm-route-div-icon',
+    html: `<span class="osm-route-arrow ${active ? 'is-active' : ''}" style="--pin-accent:${accent};transform:rotate(${rotation}deg)">↑</span>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  })
+}
+
+const getLegMidpoint = (coordinates: Array<[number, number]>) =>
+  coordinates[Math.floor(coordinates.length / 2)]
 
 export function OSMParkRouteMap({
   parkId,
@@ -93,25 +143,68 @@ export function OSMParkRouteMap({
     }),
     [parkId, route.stops],
   )
-  const allPoints = useMemo(
-    () => startGeo ? [startGeo, ...stopLocations.map((item) => item.geo)] : [],
-    [startGeo, stopLocations],
+  const namedPoints = useMemo<NamedGeoCoordinate[]>(
+    () => startGeo
+      ? [
+          { ...startGeo, name: startPoint.label },
+          ...stopLocations.map(({ stop, geo }) => ({
+            lat: geo.lat,
+            lng: geo.lng,
+            name: stop.name,
+          })),
+        ]
+      : [],
+    [startGeo, startPoint.label, stopLocations],
   )
-  const [walkingRoute, setWalkingRoute] = useState<OSMRouteResult>(() => createDirectRoute(allPoints))
+  const fallbackLegs = useMemo(
+    () => namedPoints.slice(0, -1).map((point, index) =>
+      createFallbackLeg(point, namedPoints[index + 1]),
+    ),
+    [namedPoints],
+  )
+  const [routeLegs, setRouteLegs] = useState<OSMRouteLeg[]>(fallbackLegs)
+  const [selectedLegIndex, setSelectedLegIndex] = useState<number | null>(null)
+  const [isCalculating, setIsCalculating] = useState(false)
+  const [centerOnUserRequest, setCenterOnUserRequest] = useState(0)
+  const [fitRequest, setFitRequest] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
-    setWalkingRoute(createDirectRoute(allPoints))
-    void getWalkingRoute(allPoints, controller.signal).then(setWalkingRoute).catch(() => undefined)
+    setRouteLegs(fallbackLegs)
+    setSelectedLegIndex(null)
+
+    if (namedPoints.length < 2) {
+      setIsCalculating(false)
+      return () => controller.abort()
+    }
+
+    setIsCalculating(true)
+    void getWalkingRouteLegs(namedPoints, controller.signal)
+      .then(setRouteLegs)
+      .catch(() => setRouteLegs(fallbackLegs))
+      .finally(() => {
+        if (!controller.signal.aborted) setIsCalculating(false)
+      })
+
     return () => controller.abort()
-  }, [allPoints])
+  }, [fallbackLegs, namedPoints])
 
   if (!config || !startGeo) return null
 
   const osmUrl = `https://www.openstreetmap.org/?mlat=${config.lat}&mlon=${config.lng}#map=${config.zoom}/${config.lat}/${config.lng}`
-  const linePositions = walkingRoute.coordinates.map(
-    (point) => [point.lat, point.lng] as LatLngExpression,
+  const selectedLeg = selectedLegIndex === null ? null : routeLegs[selectedLegIndex]
+  const completeCoordinates = routeLegs.flatMap((leg, index) =>
+    index === 0 ? leg.coordinates : leg.coordinates.slice(1),
   )
+  const fitCoordinates = selectedLeg?.coordinates.length
+    ? selectedLeg.coordinates
+    : completeCoordinates.length > 1
+      ? completeCoordinates
+      : namedPoints.map((point) => [point.lat, point.lng] as [number, number])
+  const totalDistance = routeLegs.reduce((total, leg) => total + leg.distanceMeters, 0)
+  const totalDuration = routeLegs.reduce((total, leg) => total + leg.durationSeconds, 0)
+  const hasFallback = routeLegs.some((leg) => leg.source === 'fallback')
+  const usesCompatibleProfile = routeLegs.some((leg) => leg.profile === 'driving-compatible')
 
   return (
     <section className="osm-park-route-map" style={{ '--park-accent': accent } as CSSProperties}>
@@ -120,10 +213,33 @@ export function OSMParkRouteMap({
           <span className="section-kicker">Mapa real da rota</span>
           <h2>{parkName}</h2>
         </div>
-        <a href={osmUrl} target="_blank" rel="noreferrer">
-          Abrir no OpenStreetMap
-        </a>
+        <div className="osm-map-heading-actions">
+          {startPoint.isUserLocation && (
+            <button type="button" onClick={() => setCenterOnUserRequest((value) => value + 1)}>
+              Centralizar em mim
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedLegIndex(null)
+              setFitRequest((value) => value + 1)
+            }}
+          >
+            Ver rota completa
+          </button>
+          <a href={osmUrl} target="_blank" rel="noreferrer">
+            Abrir no OpenStreetMap
+          </a>
+        </div>
       </div>
+
+      {isCalculating && (
+        <div className="osm-routing-loading" role="status">
+          <span />
+          Calculando caminho...
+        </div>
+      )}
 
       <div className="osm-map-shell">
         <MapContainer
@@ -137,12 +253,54 @@ export function OSMParkRouteMap({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <FitMap points={allPoints} />
-          {linePositions.length > 1 && (
-            <Polyline positions={linePositions} pathOptions={{ color: accent, weight: 5, opacity: .9 }} />
-          )}
-          <Marker position={[startGeo.lat, startGeo.lng]} icon={createStartIcon(accent)}>
-            <Tooltip direction="top" offset={[0, -12]}>Início: {startPoint.label}</Tooltip>
+          <FitMap
+            coordinates={fitCoordinates}
+            userLocation={startPoint.isUserLocation ? startGeo : undefined}
+            centerOnUserRequest={centerOnUserRequest}
+            fitRequest={fitRequest}
+          />
+          {routeLegs.map((leg, index) => {
+            const isActive = selectedLegIndex === index
+            const isMuted = selectedLegIndex !== null && !isActive
+            const positions = leg.coordinates as LatLngExpression[]
+            const midpoint = getLegMidpoint(leg.coordinates)
+
+            return (
+              <Fragment key={`${leg.fromName}-${leg.toName}-${index}`}>
+              <Polyline
+                positions={positions}
+                pathOptions={{
+                  color: accent,
+                  weight: isActive ? 8 : 5,
+                  opacity: isMuted ? .22 : isActive ? 1 : .72,
+                  dashArray: leg.source === 'fallback' ? '8 7' : undefined,
+                }}
+                eventHandlers={{
+                  click: () => setSelectedLegIndex(index),
+                }}
+              >
+                <Tooltip sticky>
+                  {leg.fromName} → {leg.toName}<br />
+                  {formatDistance(leg.distanceMeters)} · {formatDuration(leg.durationSeconds)}
+                </Tooltip>
+              </Polyline>
+              {midpoint && (
+                <Marker
+                  position={midpoint}
+                  icon={createDirectionIcon(leg.coordinates, accent, isActive)}
+                  interactive={false}
+                />
+              )}
+              </Fragment>
+            )
+          })}
+          <Marker
+            position={[startGeo.lat, startGeo.lng]}
+            icon={startPoint.isUserLocation ? createUserIcon(accent) : createStartIcon(accent)}
+          >
+            <Tooltip direction="top" offset={[0, -12]}>
+              {startPoint.isUserLocation ? 'Você está aqui' : `Início: ${startPoint.label}`}
+            </Tooltip>
           </Marker>
           {stopLocations.map(({ stop, geo }) => (
             <Marker
@@ -152,22 +310,72 @@ export function OSMParkRouteMap({
                 stop.order,
                 accent,
                 stop.order === 1,
-                Boolean(geo.estimated || stop.location.estimatedLocation),
+                geo.source === 'estimated',
               )}
             >
               <Tooltip direction="top" offset={[0, -12]}>
                 {stop.order}. {stop.name}
-                {geo.estimated ? ' — posição aproximada' : ''}
+                {geo.source === 'estimated' ? ' — posição aproximada' : ' — posição verificada'}
               </Tooltip>
             </Marker>
           ))}
         </MapContainer>
       </div>
 
+      {hasFallback && (
+        <p className="osm-routing-warning" role="status">
+          Caminho exato indisponível. Exibindo direção aproximada nos trechos pontilhados.
+        </p>
+      )}
+      {!hasFallback && usesCompatibleProfile && (
+        <p className="osm-routing-warning" role="status">
+          O OSRM público não disponibilizou caminhada; o traçado viário compatível pode variar dos caminhos internos.
+        </p>
+      )}
+
+      {routeLegs.length > 0 && (
+        <div className="route-directions osm-route-directions" aria-label="Como seguir">
+          <div className="route-directions-heading">
+            <strong>Como seguir</strong>
+            <span>{routeLegs.length} trechos</span>
+          </div>
+          <ol>
+            {routeLegs.map((leg, index) => (
+              <li key={`${leg.fromName}-${leg.toName}`}>
+                <button
+                  type="button"
+                  className={selectedLegIndex === index ? 'is-active' : ''}
+                  aria-pressed={selectedLegIndex === index}
+                  onClick={() => {
+                    setSelectedLegIndex(index)
+                    setFitRequest((value) => value + 1)
+                  }}
+                >
+                  <span className="route-direction-order">{index + 1}</span>
+                  <span className="route-direction-copy">
+                    <small>{leg.fromName}</small>
+                    <strong>{leg.toName}</strong>
+                    <em>{leg.source === 'osrm' ? 'Caminho calculado' : 'Direção aproximada'}</em>
+                  </span>
+                  <span className="route-direction-distance">
+                    <strong>{formatDistance(leg.distanceMeters)}</strong>
+                    <small>{formatDuration(leg.durationSeconds)}</small>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
       <div className="osm-map-summary">
-        <span><strong>{formatDistance(walkingRoute.distanceMeters)}</strong> distância estimada</span>
-        <span><strong>{walkingRoute.durationMinutes} min</strong> caminhada estimada</span>
-        <span>{walkingRoute.source === 'osrm' ? 'Traçado OSRM' : 'Linha direta aproximada'}</span>
+        <span><strong>{formatDistance(totalDistance)}</strong> distância estimada</span>
+        <span><strong>{formatDuration(totalDuration)}</strong> caminhada estimada</span>
+        <span>{hasFallback ? 'Rota parcialmente aproximada' : 'Trechos calculados pelo OSRM'}</span>
+      </div>
+      <div className="osm-position-legend" aria-label="Legenda de precisão das posições">
+        <span><i className="is-verified" /> posição verificada</span>
+        <span><i className="is-estimated" /> posição aproximada</span>
       </div>
       <p className="osm-map-warning">
         Mapa baseado em OpenStreetMap. Caminhos internos podem variar conforme dados disponíveis.

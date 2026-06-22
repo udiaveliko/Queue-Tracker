@@ -69,6 +69,35 @@ test('ponto inicial altera a primeira parada no modo menor caminhada', () => {
   assert.ok(route.totalEstimatedDistance >= route.distanceFromStart)
 })
 
+test('origem GPS usa distância geográfica real até a primeira parada', () => {
+  const startPoint: RouteStartPoint = {
+    parkId: 'magic-kingdom',
+    attractionId: 'gps',
+    x: 50,
+    y: 50,
+    estimatedLocation: false,
+    label: 'Minha localização atual',
+    latitude: 28.4191503,
+    longitude: -81.5772484,
+    isUserLocation: true,
+  }
+  const spaceMountain = routeAttraction(
+    'magic-kingdom-4',
+    40,
+    'STABLE',
+    82,
+    18,
+    'Tomorrowland',
+  )
+  spaceMountain.name = 'Space Mountain'
+  spaceMountain.location.parkId = 'magic-kingdom'
+
+  const route = planAttractionRoute([spaceMountain], 'balanced', startPoint)
+
+  assert.ok(route.distanceFromStart < 10)
+  assert.equal(route.stops[0].distanceFromPrevious, route.distanceFromStart)
+})
+
 test('modo menor fila prefere a próxima atração com espera baixa', () => {
   const route = planAttractionRoute([
     routeAttraction('first', 30, 'GO_NOW', 0, 0),

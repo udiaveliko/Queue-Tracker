@@ -2181,6 +2181,72 @@ body {
   background: transparent;
 }
 
+.gps-location-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.gps-location-actions button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 15px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  border-radius: 13px;
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 750;
+  background: color-mix(in srgb, var(--accent) 8%, var(--card));
+  cursor: pointer;
+}
+
+.gps-location-actions button.is-active {
+  border-color: var(--accent);
+  color: white;
+  background: var(--accent);
+}
+
+.gps-location-actions button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.gps-location-actions button span {
+  font-size: 18px;
+}
+
+.gps-location-actions small {
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+
+.gps-location-message,
+.gps-outside-warning {
+  margin: 9px 0 0;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  color: var(--text-secondary);
+  font-size: 8px;
+  line-height: 1.45;
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+}
+
+.gps-location-message.is-error,
+.gps-outside-warning {
+  border-color: color-mix(in srgb, var(--warning) 28%, var(--border));
+  color: color-mix(in srgb, var(--warning) 68%, var(--text-primary));
+  background: color-mix(in srgb, var(--warning) 7%, var(--card));
+}
+
+.gps-location-message.is-success {
+  border-color: color-mix(in srgb, var(--success) 25%, var(--border));
+}
+
 .park-route-map {
   --park-accent: var(--accent);
   margin: 0 0 30px;
@@ -2234,12 +2300,93 @@ body {
   background: color-mix(in srgb, var(--park-accent) 8%, var(--card));
 }
 
+.osm-map-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.osm-map-heading-actions button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  color: var(--text-primary);
+  font-size: 8px;
+  font-weight: 750;
+  background: var(--card);
+  cursor: pointer;
+}
+
 .osm-map-shell {
   position: relative;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--park-accent) 22%, var(--border));
   border-radius: 18px;
   background: var(--background);
+}
+
+.osm-routing-loading {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  color: var(--text-secondary);
+  font-size: 8px;
+  background: color-mix(in srgb, var(--card) 76%, transparent);
+}
+
+.osm-routing-loading span {
+  width: 13px;
+  height: 13px;
+  border: 2px solid color-mix(in srgb, var(--park-accent) 25%, transparent);
+  border-top-color: var(--park-accent);
+  border-radius: 50%;
+  animation: spin .75s linear infinite;
+}
+
+.osm-routing-warning {
+  margin: 10px 0 0;
+  padding: 9px 11px;
+  border: 1px solid color-mix(in srgb, var(--warning) 24%, var(--border));
+  border-radius: 11px;
+  color: color-mix(in srgb, var(--warning) 68%, var(--text-primary));
+  font-size: 8px;
+  line-height: 1.45;
+  background: color-mix(in srgb, var(--warning) 7%, var(--card));
+}
+
+.osm-route-arrow {
+  --pin-accent: #0a84ff;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 50%;
+  color: white;
+  font: 900 12px/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  background: var(--pin-accent);
+  box-shadow: 0 3px 9px rgba(0, 0, 0, .28);
+  opacity: .72;
+}
+
+.osm-route-arrow.is-active {
+  width: 26px;
+  height: 26px;
+  margin: -2px;
+  opacity: 1;
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--pin-accent) 18%, transparent),
+    0 4px 12px rgba(0, 0, 0, .32);
+}
+
+.osm-route-directions {
+  margin-top: 12px;
 }
 
 .osm-leaflet-map {
@@ -2329,6 +2476,29 @@ body {
   background: var(--pin-accent);
 }
 
+.osm-user-location-pin {
+  --pin-accent: #0a84ff;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--pin-accent) 40%, white);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pin-accent) 18%, rgba(255, 255, 255, .9));
+  box-shadow:
+    0 0 0 7px color-mix(in srgb, var(--pin-accent) 13%, transparent),
+    0 5px 18px rgba(0, 0, 0, .3);
+}
+
+.osm-user-location-pin i {
+  width: 12px;
+  height: 12px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: var(--pin-accent);
+  box-shadow: 0 0 0 1px var(--pin-accent);
+}
+
 .osm-map-summary {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2359,6 +2529,34 @@ body {
   color: var(--text-secondary);
   font-size: 8px;
   line-height: 1.5;
+}
+
+.osm-position-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 10px;
+  color: var(--text-secondary);
+  font-size: 7px;
+}
+
+.osm-position-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.osm-position-legend i {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--park-accent);
+  border-radius: 50%;
+  background: var(--park-accent);
+}
+
+.osm-position-legend i.is-estimated {
+  border-style: dashed;
+  background: transparent;
 }
 
 .park-route-map-heading {
@@ -3412,6 +3610,21 @@ body {
   .osm-map-heading a {
     width: 100%;
     justify-content: center;
+  }
+
+  .osm-map-heading-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .gps-location-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .gps-location-actions button {
+    width: 100%;
   }
 
   .osm-leaflet-map {
